@@ -18,12 +18,14 @@ in vec2 aTile;
 out vec3 vWorld;
 out vec3 vNormal;
 out vec2 vUv;
+out vec2 vLocal;
 out float vFace;
 void main() {
   vec4 world = modelMatrix * instanceMatrix * vec4(position, 1.0);
   vWorld = world.xyz;
   vNormal = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
-  vUv = (aTile + clamp(position.xy / uCell + 0.5, 0.0, 1.0)) / uGrid;
+  vLocal = clamp(position.xy / uCell + 0.5, 0.0, 1.0);
+  vUv = (aTile + vLocal) / uGrid;
   vFace = normal.z;
   gl_Position = projectionMatrix * viewMatrix * world;
 }
@@ -31,18 +33,23 @@ void main() {
 
 /**
  * The tile's glass. The poster is lit from inside, so it reads as a screen behind the glass.
- * Where the bevel tilts the surface, the image is pulled sideways in proportion to the tilt,
- * further for blue than for red, the dispersion a thick edge gives. A key light held high
- * and to the left catches the bevels, and the faces seen edge-on pick up a Fresnel sheen.
+ * Each tile is a thick block that acts as a weak convex lens, so its own cell of the image
+ * is drawn slightly magnified toward the tile's centre and dims toward the bevel, where the
+ * light path through the glass is longest. Where the bevel tilts the surface, the image is
+ * pulled sideways in proportion to the tilt, further for blue than for red, the dispersion a
+ * thick edge gives. A key light held high and to the left catches the bevels, and faces seen
+ * edge-on pick up a Fresnel sheen.
  */
 export const glassFragment = glsl`${header}
 uniform sampler2D uPoster;
 uniform vec3 uCamPos;
 uniform vec3 uTint;
 uniform float uOpacity;
+uniform vec2 uGrid;
 in vec3 vWorld;
 in vec3 vNormal;
 in vec2 vUv;
+in vec2 vLocal;
 in float vFace;
 out vec4 fragColor;
 
@@ -52,7 +59,8 @@ void main() {
   vec3 n = normalize(vNormal) * (gl_FrontFacing ? 1.0 : -1.0);
   vec3 v = normalize(uCamPos - vWorld);
   float facing = max(dot(n, v), 0.0);
-  vec2 bend = n.xy * (1.0 - facing) * 0.06;
+  vec2 lens = (0.5 - vLocal) * 0.14 / uGrid;
+  vec2 bend = n.xy * (1.0 - facing) * 0.06 + lens;
   vec3 poster = vec3(
     texture(uPoster, vUv + bend * 1.0).r,
     texture(uPoster, vUv + bend * 1.25).g,
@@ -60,7 +68,8 @@ void main() {
   );
   // The back and sides of a turned tile show the glass, not the image behind it.
   float front = smoothstep(0.2, 0.9, vFace);
-  vec3 body = mix(uTint * 0.05 + poster * 0.08, poster * 0.92, front);
+  float rim = 1.0 - smoothstep(0.32, 0.5, max(abs(vLocal.x - 0.5), abs(vLocal.y - 0.5)));
+  vec3 body = mix(uTint * 0.05 + poster * 0.08, poster * (0.72 + 0.26 * rim), front);
   float key = pow(max(dot(reflect(-v, n), KEY), 0.0), 8.5) * 0.55 + pow(max(dot(reflect(-v, n), KEY), 0.0), 140.0) * 1.6;
   float fresnel = 0.04 + 0.96 * pow(1.0 - facing, 5.0);
   vec3 colour = body + vec3(key) + mix(uTint, vec3(1.0), 0.5) * fresnel * 0.35;
