@@ -11,7 +11,10 @@ import { chromium } from '@playwright/test';
 
 const url = process.argv.find((a) => a.startsWith('http')) ?? 'http://localhost:4444';
 const outDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'shots');
-const browser = await chromium.launch({ channel: 'chrome', args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
+const browser = await chromium.launch({
+  channel: 'chrome',
+  args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'],
+});
 
 for (const reducedMotion of ['no-preference', 'reduce']) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, reducedMotion });
@@ -38,10 +41,16 @@ for (const reducedMotion of ['no-preference', 'reduce']) {
       await page.screenshot({ path: path.join(outDir, `reel-hover-${reducedMotion}.png`) });
       await page.mouse.click(x, y);
       await page.waitForTimeout(1500);
-      opened = await page.locator('dialog[open] iframe').count().then((n) => n > 0);
+      opened = await page
+        .locator('dialog[open] iframe')
+        .count()
+        .then((n) => n > 0);
     }
   }
-  console.log(`${reducedMotion}: sound pressed ${pressed}, reel click opened trailer ${opened}`, problems.length ? problems : 'no errors');
+  console.log(
+    `${reducedMotion}: sound pressed ${pressed}, reel click opened trailer ${opened}`,
+    problems.length ? problems : 'no errors',
+  );
   await page.close();
 }
 await browser.close();

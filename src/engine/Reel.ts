@@ -127,7 +127,11 @@ export class Reel {
     for (let k = 0; k < this.count; k++) {
       const s = (((k - flow) % this.count) + this.count) % this.count;
       const angle = (2 * Math.PI * s) / PER_TURN;
-      this.at.set(origin.x + Math.cos(angle) * RADIUS, origin.y + Math.sin(angle) * RADIUS, origin.z - NEAREST - s * SPACING);
+      this.at.set(
+        origin.x + Math.cos(angle) * RADIUS,
+        origin.y + Math.sin(angle) * RADIUS,
+        origin.z - NEAREST - s * SPACING,
+      );
       this.face.set(-Math.cos(angle) * (1 - LEAN), -Math.sin(angle) * (1 - LEAN), LEAN).normalize();
       // Matrix4.lookAt points −z from eye to target, so the target sits behind the face for +z to face out.
       this.matrix.lookAt(this.at, this.target.copy(this.at).sub(this.face), this.up);
