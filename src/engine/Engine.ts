@@ -207,7 +207,9 @@ export class Engine {
     const { from, to, t } = between(position, count);
     const z = lerp(cameraZ(from), cameraZ(to), t);
 
-    this.placeCamera(z, intro, input, dt);
+    // The tunnel forms around the eye line, so the view levels out to look straight down it.
+    const tunnel = smoothstep(cameraZ(count - 2) - 1.5, cameraZ(count - 1) + 1, z);
+    this.placeCamera(z, intro, tunnel, input, dt);
     this.touchGround(input, time, dt);
 
     const u = this.valley.uniforms;
@@ -217,8 +219,7 @@ export class Engine {
     u.uFocus.value.set(0, z - CAMERA.lookAhead + 0.4);
     this.tint.copy(this.tints[from]!).lerp(this.tints[to]!, smoothstep(0, 1, t));
     this.applyTint(this.tint);
-    // The flight turns into a tunnel between the last pick and the outro.
-    u.uTunnel.value = smoothstep(cameraZ(count - 2) - 1.5, cameraZ(count - 1) + 1, z);
+    u.uTunnel.value = tunnel;
     this.valley.update(this.renderer, z);
     this.numbers.update(z, dt, this.reducedMotion);
     for (const wall of this.walls) wall.update(z, this.camera, this.cursor.value, dt, this.reducedMotion);
@@ -242,7 +243,7 @@ export class Engine {
     u.uDot.value.copy(u.uGlow.value).lerp(new Vector3(1, 1, 1), 0.18);
   }
 
-  private placeCamera(z: number, intro: number, input: EngineInput, dt: number): void {
+  private placeCamera(z: number, intro: number, tunnel: number, input: EngineInput, dt: number): void {
     const follow = this.reducedMotion || !input.pointerActive ? 0 : 1;
     this.orbit.set(
       damp(this.orbit.x, input.pointerX * follow, 3, dt),
@@ -252,7 +253,8 @@ export class Engine {
     const drop = (1 - intro) * 8;
     this.camera.position.set(this.orbit.x * 0.22, CAMERA.height + drop + this.orbit.y * 0.1, z);
     const tall = this.aspect < 0.8;
-    this.look.set(this.orbit.x * 0.06, tall ? CAMERA.lookHeightTall : CAMERA.lookHeight, z - CAMERA.lookAhead);
+    const lookY = lerp(tall ? CAMERA.lookHeightTall : CAMERA.lookHeight, CAMERA.height, tunnel);
+    this.look.set(this.orbit.x * 0.06, lookY, z - CAMERA.lookAhead);
     this.camera.lookAt(this.look);
 
     const speed = this.lastCameraZ === null ? 0 : Math.abs(z - this.lastCameraZ) / dt;

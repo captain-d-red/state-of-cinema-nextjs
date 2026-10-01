@@ -49,6 +49,7 @@ void main() {
 
 export const terrainVertex = glsl`${header}
 ${field}
+${look}
 uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
@@ -60,8 +61,10 @@ void main() {
   // Noise is sampled at world coordinates, so the patch can follow the camera without the
   // ground sliding along with it.
   world.y = terrainHeight(world.xz);
-  vWorld = world.xyz;
   vRelief = world.y;
+  // As the tunnel forms the ground falls away beneath it, so it no longer hides the lower helix.
+  world.y -= uTunnel * uTunnel * 8.0;
+  vWorld = world.xyz;
   gl_Position = projectionMatrix * viewMatrix * world;
 }
 `;

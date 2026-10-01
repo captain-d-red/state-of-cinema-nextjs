@@ -16,7 +16,10 @@ const SIZES = { fhd: [1920, 1080], uhd: [3840, 2160], laptop: [1440, 900] };
 
 for (const name of flag('sizes', 'fhd,uhd').split(',')) {
   const [width, height] = SIZES[name];
-  const browser = await chromium.launch({ channel: 'chrome', args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] });
+  const browser = await chromium.launch({
+    channel: 'chrome',
+    args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'],
+  });
   const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
   await page.goto(url, { waitUntil: 'networkidle' });
   await page.waitForTimeout(4500);

@@ -17,7 +17,10 @@ const H = 900;
 const outDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'shots');
 await fs.mkdir(outDir, { recursive: true });
 
-const browser = await chromium.launch({ channel: 'chrome', args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({
+  channel: 'chrome',
+  args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'],
+});
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 2 });
 const problems = [];
 page.on('pageerror', (e) => problems.push(`pageerror ${e.message}`));
