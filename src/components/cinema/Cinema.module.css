@@ -1,0 +1,41 @@
+/*
+ * The stage holds the scene and its interface, fixed to the window while the page scrolls
+ * beneath it. It is as tall as the large viewport, so a phone's toolbar sliding in and out
+ * never resizes the canvas, and the interface inside it follows the dynamic viewport instead.
+ */
+.root {
+  position: relative;
+}
+
+.stage {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100lvh;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: pan-y;
+}
+
+.track {
+  pointer-events: none;
+}
+
+.unsupported {
+  position: fixed;
+  left: var(--gutter);
+  right: var(--gutter);
+  top: 40%;
+  margin: 0;
+  font-size: 1.1rem;
+  text-align: center;
+}

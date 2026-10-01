@@ -1,0 +1,1844 @@
+{
+  "films": [
+    {
+      "slug": "black-swan",
+      "title": "Black Swan",
+      "year": 2010,
+      "director": "Darren Aronofsky",
+      "minutes": 108,
+      "genres": [
+        "Thriller",
+        "Horror",
+        "Drama"
+      ],
+      "logline": "A ballerina cast as the Swan Queen begins to lose her grip on reality.",
+      "image": {
+        "src": "/films/black-swan.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#b4a99c",
+        "accent": "#b4a99c"
+      },
+      "trailer": {
+        "id": "5jaI1XOB-bs",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "inception",
+      "title": "Inception",
+      "year": 2010,
+      "director": "Christopher Nolan",
+      "minutes": 148,
+      "genres": [
+        "Sci-Fi",
+        "Action",
+        "Thriller"
+      ],
+      "logline": "A thief who steals secrets from dreams is hired to plant an idea instead.",
+      "image": {
+        "src": "/films/inception.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#55aad1",
+        "accent": "#55aad1"
+      },
+      "trailer": {
+        "id": "YoHD9XEInc0",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "drive",
+      "title": "Drive",
+      "year": 2011,
+      "director": "Nicolas Winding Refn",
+      "minutes": 100,
+      "genres": [
+        "Thriller",
+        "Crime",
+        "Action"
+      ],
+      "logline": "A quiet stunt driver who moonlights as a getaway man gets caught in a heist gone wrong.",
+      "image": {
+        "src": "/films/drive.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#aaa238",
+        "accent": "#d57db1"
+      },
+      "trailer": {
+        "id": "KBiOF3y1W0Y",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "the-dark-knight-rises",
+      "title": "The Dark Knight Rises",
+      "year": 2012,
+      "director": "Christopher Nolan",
+      "minutes": 164,
+      "genres": [
+        "Action",
+        "Thriller"
+      ],
+      "logline": "Eight years after vanishing, Batman returns to face Bane as Gotham is held hostage.",
+      "image": {
+        "src": "/films/the-dark-knight-rises.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#fc6b36",
+        "accent": "#fc6b36"
+      },
+      "trailer": {
+        "id": "J9DlV9qwtF0",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "skyfall",
+      "title": "Skyfall",
+      "year": 2012,
+      "director": "Sam Mendes",
+      "minutes": 143,
+      "genres": [
+        "Action",
+        "Thriller",
+        "Adventure"
+      ],
+      "logline": "Bond's loyalty to M is tested when her past comes back to haunt MI6.",
+      "image": {
+        "src": "/films/skyfall.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#8e99dc",
+        "accent": "#8e99dc"
+      },
+      "trailer": {
+        "id": "6kw1UVovByw",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "her",
+      "title": "Her",
+      "year": 2013,
+      "director": "Spike Jonze",
+      "minutes": 126,
+      "genres": [
+        "Sci-Fi",
+        "Romance",
+        "Drama"
+      ],
+      "logline": "A lonely writer falls in love with the operating system that runs his life.",
+      "image": {
+        "src": "/films/her.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff616f",
+        "accent": "#ff616f"
+      },
+      "trailer": {
+        "id": "dJTU48_yghs",
+        "aspect": 1.85
+      }
+    },
+    {
+      "slug": "gravity",
+      "title": "Gravity",
+      "year": 2013,
+      "director": "Alfonso Cuarón",
+      "minutes": 91,
+      "genres": [
+        "Sci-Fi",
+        "Thriller"
+      ],
+      "logline": "Debris destroys their shuttle, leaving two astronauts adrift above the Earth.",
+      "image": {
+        "src": "/films/gravity.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#65a5d8",
+        "accent": "#65a5d8"
+      },
+      "trailer": {
+        "id": "k0ijEEivCbg",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "ex-machina",
+      "title": "Ex Machina",
+      "year": 2014,
+      "director": "Alex Garland",
+      "minutes": 108,
+      "genres": [
+        "Sci-Fi",
+        "Thriller"
+      ],
+      "logline": "A young programmer is invited to test whether a secret humanoid AI is truly conscious.",
+      "image": {
+        "src": "/films/ex-machina.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6362",
+        "accent": "#ff6362"
+      },
+      "trailer": {
+        "id": "PI8XBKb6DQk",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "edge-of-tomorrow",
+      "title": "Edge of Tomorrow",
+      "year": 2014,
+      "director": "Doug Liman",
+      "minutes": 113,
+      "genres": [
+        "Sci-Fi",
+        "Action"
+      ],
+      "logline": "A soldier caught in a time loop relives the same doomed battle against alien invaders.",
+      "image": {
+        "src": "/films/edge-of-tomorrow.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff635e",
+        "accent": "#ff635e"
+      },
+      "trailer": {
+        "id": "vw61gCe2oqI",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "interstellar",
+      "title": "Interstellar",
+      "year": 2014,
+      "director": "Christopher Nolan",
+      "minutes": 169,
+      "genres": [
+        "Sci-Fi",
+        "Adventure",
+        "Drama"
+      ],
+      "logline": "With Earth failing, a pilot leaves his children to search for a new home beyond a wormhole.",
+      "image": {
+        "src": "/films/interstellar.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#b4a99c",
+        "accent": "#b4a99c"
+      },
+      "trailer": {
+        "id": "dXQWzwGcACc",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "guardians-of-the-galaxy",
+      "title": "Guardians of the Galaxy",
+      "year": 2014,
+      "director": "James Gunn",
+      "minutes": 121,
+      "genres": [
+        "Sci-Fi",
+        "Action",
+        "Comedy"
+      ],
+      "logline": "A ragtag crew of outlaws steals an orb that every power in the galaxy wants.",
+      "image": {
+        "src": "/films/guardians-of-the-galaxy.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#6aa0ec",
+        "accent": "#6aa0ec"
+      },
+      "trailer": {
+        "id": "2XltzyLcu0g",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "the-martian",
+      "title": "The Martian",
+      "year": 2015,
+      "director": "Ridley Scott",
+      "minutes": 144,
+      "genres": [
+        "Sci-Fi",
+        "Adventure"
+      ],
+      "logline": "Stranded on Mars and presumed dead, a botanist has to science his way home.",
+      "image": {
+        "src": "/films/the-martian.webp",
+        "width": 682,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#d58775",
+        "accent": "#d58775"
+      },
+      "trailer": {
+        "id": "ej3ioOneTy8",
+        "aspect": 1.7778
+      }
+    },
+    {
+      "slug": "sicario",
+      "title": "Sicario",
+      "year": 2015,
+      "director": "Denis Villeneuve",
+      "minutes": 121,
+      "genres": [
+        "Thriller",
+        "Action",
+        "Crime"
+      ],
+      "logline": "An FBI agent joins a task force in the war on drugs on the US and Mexico border.",
+      "image": {
+        "src": "/films/sicario.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#b89b51",
+        "accent": "#b89b51"
+      },
+      "trailer": {
+        "id": "7XLQ1bkSLDo",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "mad-max-fury-road",
+      "title": "Mad Max: Fury Road",
+      "year": 2015,
+      "director": "George Miller",
+      "minutes": 120,
+      "genres": [
+        "Action",
+        "Sci-Fi",
+        "Adventure"
+      ],
+      "logline": "A rebel warrior and a drifter flee a desert tyrant in a war rig across the wasteland.",
+      "image": {
+        "src": "/films/mad-max-fury-road.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#bb9c00",
+        "accent": "#bb9c00"
+      },
+      "trailer": {
+        "id": "b_4nzm9ICuo",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "the-revenant",
+      "title": "The Revenant",
+      "year": 2015,
+      "director": "Alejandro G. Iñárritu",
+      "minutes": 156,
+      "genres": [
+        "Adventure",
+        "Drama",
+        "Thriller"
+      ],
+      "logline": "Left for dead after a bear attack, a frontiersman crawls back for revenge.",
+      "image": {
+        "src": "/films/the-revenant.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#7d9edd",
+        "accent": "#7d9edd"
+      },
+      "trailer": {
+        "id": "LoebZZ8K5N0",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "arrival",
+      "title": "Arrival",
+      "year": 2016,
+      "director": "Denis Villeneuve",
+      "minutes": 116,
+      "genres": [
+        "Sci-Fi",
+        "Drama",
+        "Mystery"
+      ],
+      "logline": "A linguist races to understand alien visitors before the world goes to war over them.",
+      "image": {
+        "src": "/films/arrival.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#c39554",
+        "accent": "#c39554"
+      },
+      "trailer": {
+        "id": "oGI9hSl0q-w",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "rogue-one",
+      "title": "Rogue One",
+      "year": 2016,
+      "director": "Gareth Edwards",
+      "minutes": 133,
+      "genres": [
+        "Sci-Fi",
+        "Adventure",
+        "Action"
+      ],
+      "logline": "A band of rebels sets out to steal the plans for the Death Star.",
+      "image": {
+        "src": "/films/rogue-one.webp",
+        "width": 682,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#5aa8d3",
+        "accent": "#5aa8d3"
+      },
+      "trailer": {
+        "id": "dyHweFaQw8s",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "your-name",
+      "title": "Your Name",
+      "year": 2016,
+      "director": "Makoto Shinkai",
+      "minutes": 106,
+      "genres": [
+        "Animation",
+        "Fantasy",
+        "Romance"
+      ],
+      "logline": "Two teenagers who have never met start waking up in each other's bodies.",
+      "image": {
+        "src": "/films/your-name.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#00aaf2",
+        "accent": "#00aaf2"
+      },
+      "trailer": {
+        "id": "RuyHIkXdYf8",
+        "aspect": 1.7778
+      }
+    },
+    {
+      "slug": "baby-driver",
+      "title": "Baby Driver",
+      "year": 2017,
+      "director": "Edgar Wright",
+      "minutes": 113,
+      "genres": [
+        "Action",
+        "Thriller"
+      ],
+      "logline": "A getaway driver who lives by his playlist is forced into one last heist.",
+      "image": {
+        "src": "/films/baby-driver.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff5f7a",
+        "accent": "#ff5f7a"
+      },
+      "trailer": {
+        "id": "zTvJJnoWIPk",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "logan",
+      "title": "Logan",
+      "year": 2017,
+      "director": "James Mangold",
+      "minutes": 137,
+      "genres": [
+        "Action",
+        "Drama",
+        "Sci-Fi"
+      ],
+      "logline": "An ageing Wolverine protects a young mutant girl on a road trip across the border.",
+      "image": {
+        "src": "/films/logan.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#d7857b",
+        "accent": "#d7857b"
+      },
+      "trailer": {
+        "id": "Div0iP65aZo",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "blade-runner-2049",
+      "title": "Blade Runner 2049",
+      "year": 2017,
+      "director": "Denis Villeneuve",
+      "minutes": 164,
+      "genres": [
+        "Sci-Fi",
+        "Thriller"
+      ],
+      "logline": "A replicant hunter uncovers a buried secret that could end what is left of society.",
+      "image": {
+        "src": "/films/blade-runner-2049.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6644",
+        "accent": "#ff6644"
+      },
+      "trailer": {
+        "id": "gCcx85zbxz4",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "coco",
+      "title": "Coco",
+      "year": 2017,
+      "director": "Lee Unkrich",
+      "minutes": 105,
+      "genres": [
+        "Animation",
+        "Adventure",
+        "Fantasy"
+      ],
+      "logline": "A boy who dreams of music is swept into the Land of the Dead on the Day of the Dead.",
+      "image": {
+        "src": "/films/coco.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#fa6e00",
+        "accent": "#988cff"
+      },
+      "trailer": {
+        "id": "Rvr68u6k5sI",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "get-out",
+      "title": "Get Out",
+      "year": 2017,
+      "director": "Jordan Peele",
+      "minutes": 104,
+      "genres": [
+        "Horror",
+        "Thriller",
+        "Mystery"
+      ],
+      "logline": "A weekend with his girlfriend's family turns sinister for a young Black man.",
+      "image": {
+        "src": "/films/get-out.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#b4a99c",
+        "accent": "#b4a99c"
+      },
+      "trailer": {
+        "id": "DzfpyUB60YY",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "dunkirk",
+      "title": "Dunkirk",
+      "year": 2017,
+      "director": "Christopher Nolan",
+      "minutes": 106,
+      "genres": [
+        "Action",
+        "Drama",
+        "Thriller"
+      ],
+      "logline": "Allied soldiers trapped on a French beach wait for rescue by land, sea and air.",
+      "image": {
+        "src": "/films/dunkirk.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#4eaccc",
+        "accent": "#4eaccc"
+      },
+      "trailer": {
+        "id": "XRtZUkAR2u4",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "mission-impossible-fallout",
+      "title": "Mission: Impossible – Fallout",
+      "year": 2018,
+      "director": "Christopher McQuarrie",
+      "minutes": 147,
+      "genres": [
+        "Action",
+        "Thriller",
+        "Adventure"
+      ],
+      "logline": "Ethan Hunt races to recover stolen plutonium after a mission goes wrong.",
+      "image": {
+        "src": "/films/mission-impossible-fallout.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#e97772",
+        "accent": "#e97772"
+      },
+      "trailer": {
+        "id": "wb49-oV0F78",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "into-the-spider-verse",
+      "title": "Into the Spider-Verse",
+      "year": 2018,
+      "director": "Bob Persichetti",
+      "minutes": 117,
+      "genres": [
+        "Animation",
+        "Action",
+        "Adventure"
+      ],
+      "logline": "Teenager Miles Morales becomes Spider-Man and meets spider heroes from other dimensions.",
+      "image": {
+        "src": "/films/into-the-spider-verse.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6457",
+        "accent": "#c69615"
+      },
+      "trailer": {
+        "id": "g4Hbz2jLxvQ",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "knives-out",
+      "title": "Knives Out",
+      "year": 2019,
+      "director": "Rian Johnson",
+      "minutes": 130,
+      "genres": [
+        "Mystery",
+        "Comedy",
+        "Crime"
+      ],
+      "logline": "A detective investigates the death of a crime novelist in a family where everyone lies.",
+      "image": {
+        "src": "/films/knives-out.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6363",
+        "accent": "#c29800"
+      },
+      "trailer": {
+        "id": "qGqiHJTsRkQ",
+        "aspect": 1.85
+      }
+    },
+    {
+      "slug": "joker",
+      "title": "Joker",
+      "year": 2019,
+      "director": "Todd Phillips",
+      "minutes": 122,
+      "genres": [
+        "Thriller",
+        "Drama",
+        "Crime"
+      ],
+      "logline": "A failed comedian in Gotham slowly becomes the city's most infamous criminal.",
+      "image": {
+        "src": "/films/joker.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6457",
+        "accent": "#b99a51"
+      },
+      "trailer": {
+        "id": "zAGVQLHvwOY",
+        "aspect": 1.85
+      }
+    },
+    {
+      "slug": "parasite",
+      "title": "Parasite",
+      "year": 2019,
+      "director": "Bong Joon Ho",
+      "minutes": 132,
+      "genres": [
+        "Thriller",
+        "Drama",
+        "Comedy"
+      ],
+      "logline": "A poor family cons its way into the household of a wealthy one, until the plan cracks.",
+      "image": {
+        "src": "/films/parasite.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#61b470",
+        "accent": "#61b470"
+      },
+      "trailer": {
+        "id": "5xH0HfJHsaY",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "1917",
+      "title": "1917",
+      "year": 2019,
+      "director": "Sam Mendes",
+      "minutes": 119,
+      "genres": [
+        "Drama",
+        "Thriller",
+        "Action"
+      ],
+      "logline": "Two young soldiers cross enemy ground to deliver a message that could save 1,600 men.",
+      "image": {
+        "src": "/films/1917.webp",
+        "width": 682,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#70a2de",
+        "accent": "#e18500"
+      },
+      "trailer": {
+        "id": "YqNYrYUiMfg",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "avengers-endgame",
+      "title": "Avengers: Endgame",
+      "year": 2019,
+      "director": "Anthony Russo",
+      "minutes": 181,
+      "genres": [
+        "Action",
+        "Sci-Fi",
+        "Adventure"
+      ],
+      "logline": "The surviving Avengers attempt one last plan to undo what Thanos did to the universe.",
+      "image": {
+        "src": "/films/avengers-endgame.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#958dff",
+        "accent": "#958dff"
+      },
+      "trailer": {
+        "id": "TcMBFSGVi1c",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "soul",
+      "title": "Soul",
+      "year": 2020,
+      "director": "Pete Docter",
+      "minutes": 100,
+      "genres": [
+        "Animation",
+        "Comedy",
+        "Fantasy"
+      ],
+      "logline": "A jazz musician about to get his big break finds his soul separated from his body.",
+      "image": {
+        "src": "/films/soul.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#52a0fe",
+        "accent": "#52a0fe"
+      },
+      "trailer": {
+        "id": "xOsLIiBStEs",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "dont-look-up",
+      "title": "Don't Look Up",
+      "year": 2021,
+      "director": "Adam McKay",
+      "minutes": 138,
+      "genres": [
+        "Comedy",
+        "Sci-Fi"
+      ],
+      "logline": "Two astronomers go on a media tour to warn the world about a comet that will destroy the Earth.",
+      "image": {
+        "src": "/films/dont-look-up.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6745",
+        "accent": "#ff6745"
+      },
+      "trailer": {
+        "id": "RbIxYm3mKzI",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "the-mitchells-vs-the-machines",
+      "title": "The Mitchells vs. the Machines",
+      "year": 2021,
+      "director": "Mike Rianda and Jeff Rowe",
+      "minutes": 113,
+      "genres": [
+        "Animation",
+        "Sci-Fi",
+        "Comedy"
+      ],
+      "logline": "A family road trip is interrupted by a robot uprising, and the Mitchells are the last hope.",
+      "image": {
+        "src": "/films/the-mitchells-vs-the-machines.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#fa6e21",
+        "accent": "#fa6e21"
+      },
+      "trailer": {
+        "id": "_ak5dFt8Ar0",
+        "aspect": 1.85
+      }
+    },
+    {
+      "slug": "dune",
+      "title": "Dune",
+      "year": 2021,
+      "director": "Denis Villeneuve",
+      "minutes": 155,
+      "genres": [
+        "Sci-Fi",
+        "Adventure"
+      ],
+      "logline": "A young noble arrives on the desert planet Arrakis just as his family is betrayed.",
+      "image": {
+        "src": "/films/dune.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#41b2b1",
+        "accent": "#41b2b1"
+      },
+      "trailer": {
+        "id": "n9xhJrPXop4",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "everything-everywhere-all-at-once",
+      "title": "Everything Everywhere All at Once",
+      "year": 2022,
+      "director": "Dan Kwan and Daniel Scheinert",
+      "minutes": 140,
+      "genres": [
+        "Sci-Fi",
+        "Action",
+        "Comedy"
+      ],
+      "logline": "A laundromat owner discovers she can reach the lives of her other selves across the multiverse.",
+      "image": {
+        "src": "/films/everything-everywhere-all-at-once.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#fa6863",
+        "accent": "#fa6863"
+      },
+      "trailer": {
+        "id": "wxN1T1uxQ2g",
+        "aspect": 1.85
+      }
+    },
+    {
+      "slug": "smile",
+      "title": "Smile",
+      "year": 2022,
+      "director": "Parker Finn",
+      "minutes": 115,
+      "genres": [
+        "Horror",
+        "Mystery"
+      ],
+      "logline": "After witnessing a bizarre incident with a patient, a psychiatrist is stalked by a grinning entity.",
+      "image": {
+        "src": "/films/smile.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6553",
+        "accent": "#ff6553"
+      },
+      "trailer": {
+        "id": "BcDK7lkzzsU",
+        "aspect": 2
+      }
+    },
+    {
+      "slug": "the-batman",
+      "title": "The Batman",
+      "year": 2022,
+      "director": "Matt Reeves",
+      "minutes": 176,
+      "genres": [
+        "Action",
+        "Thriller"
+      ],
+      "logline": "In his second year as Batman, Bruce Wayne hunts a killer who is targeting Gotham's elite.",
+      "image": {
+        "src": "/films/the-batman.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6914",
+        "accent": "#ff6914"
+      },
+      "trailer": {
+        "id": "AJmEaYsLYB8",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "m3gan",
+      "title": "M3GAN",
+      "year": 2022,
+      "director": "Gerard Johnstone",
+      "minutes": 102,
+      "genres": [
+        "Horror",
+        "Sci-Fi"
+      ],
+      "logline": "A roboticist builds a lifelike AI doll to protect her niece, and the doll takes the job too far.",
+      "image": {
+        "src": "/films/m3gan.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#de853d",
+        "accent": "#de853d"
+      },
+      "trailer": {
+        "id": "BRb4U99OU80",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "talk-to-me",
+      "title": "Talk to Me",
+      "year": 2022,
+      "director": "Danny Philippou and Michael Philippou",
+      "minutes": 95,
+      "genres": [
+        "Horror",
+        "Thriller"
+      ],
+      "logline": "Friends discover how to conjure spirits with an embalmed hand, and get hooked on the rush.",
+      "image": {
+        "src": "/films/talk-to-me.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#b4a99c",
+        "accent": "#b4a99c"
+      },
+      "trailer": {
+        "id": "aLAKJu9aJys",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "the-northman",
+      "title": "The Northman",
+      "year": 2022,
+      "director": "Robert Eggers",
+      "minutes": 137,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Drama"
+      ],
+      "logline": "A Viking prince sets out to avenge his father's murder.",
+      "image": {
+        "src": "/films/the-northman.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#d28f29",
+        "accent": "#d28f29"
+      },
+      "trailer": {
+        "id": "oMSdFM12hOw",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "top-gun-maverick",
+      "title": "Top Gun: Maverick",
+      "year": 2022,
+      "director": "Joseph Kosinski",
+      "minutes": 130,
+      "genres": [
+        "Action",
+        "Drama"
+      ],
+      "logline": "Maverick returns to train a group of Top Gun graduates for a near-impossible mission.",
+      "image": {
+        "src": "/films/top-gun-maverick.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#bd9a29",
+        "accent": "#bd9a29"
+      },
+      "trailer": {
+        "id": "qSqVVswa420",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "glass-onion",
+      "title": "Glass Onion",
+      "year": 2022,
+      "director": "Rian Johnson",
+      "minutes": 140,
+      "genres": [
+        "Mystery",
+        "Comedy"
+      ],
+      "logline": "Benoit Blanc travels to a tech billionaire's private Greek island for a murder mystery weekend.",
+      "image": {
+        "src": "/films/glass-onion.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#5e9eff",
+        "accent": "#5e9eff"
+      },
+      "trailer": {
+        "id": "gj5ibYSz8C0",
+        "aspect": 2
+      }
+    },
+    {
+      "slug": "nope",
+      "title": "Nope",
+      "year": 2022,
+      "director": "Jordan Peele",
+      "minutes": 130,
+      "genres": [
+        "Horror",
+        "Sci-Fi"
+      ],
+      "logline": "Two siblings who train horses in California find something hiding in the clouds above their ranch.",
+      "image": {
+        "src": "/films/nope.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#699ef6",
+        "accent": "#699ef6"
+      },
+      "trailer": {
+        "id": "In8fuzj3gck",
+        "aspect": 2.2
+      }
+    },
+    {
+      "slug": "the-adam-project",
+      "title": "The Adam Project",
+      "year": 2022,
+      "director": "Shawn Levy",
+      "minutes": 106,
+      "genres": [
+        "Sci-Fi",
+        "Adventure",
+        "Comedy"
+      ],
+      "logline": "A time-travelling pilot crash-lands in 2022 and teams up with his twelve-year-old self.",
+      "image": {
+        "src": "/films/the-adam-project.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#7b9de5",
+        "accent": "#e4804b"
+      },
+      "trailer": {
+        "id": "IE8HIsIrq4o",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "puss-in-boots-the-last-wish",
+      "title": "Puss in Boots: The Last Wish",
+      "year": 2022,
+      "director": "Joel Crawford",
+      "minutes": 100,
+      "genres": [
+        "Animation",
+        "Adventure",
+        "Comedy"
+      ],
+      "logline": "Down to the last of his nine lives, Puss sets out to find the Wishing Star.",
+      "image": {
+        "src": "/films/puss-in-boots-the-last-wish.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#759cf1",
+        "accent": "#e48135"
+      },
+      "trailer": {
+        "id": "RqrXhwS33yc",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "avatar-the-way-of-water",
+      "title": "Avatar: The Way of Water",
+      "year": 2022,
+      "director": "James Cameron",
+      "minutes": 192,
+      "genres": [
+        "Sci-Fi",
+        "Adventure"
+      ],
+      "logline": "Jake Sully's family flees to the ocean reefs of Pandora when an old threat returns.",
+      "image": {
+        "src": "/films/avatar-the-way-of-water.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#899add",
+        "accent": "#899add"
+      },
+      "trailer": {
+        "id": "1f65r8BUZ5I",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "dead-reckoning",
+      "title": "Mission: Impossible – Dead Reckoning Part One",
+      "year": 2023,
+      "director": "Christopher McQuarrie",
+      "minutes": 163,
+      "genres": [
+        "Action",
+        "Thriller",
+        "Adventure"
+      ],
+      "logline": "Ethan Hunt races to find a rogue AI weapon before it falls into the wrong hands.",
+      "image": {
+        "src": "/films/dead-reckoning.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6360",
+        "accent": "#ff6360"
+      },
+      "trailer": {
+        "id": "avz06PDqDbM",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "leave-the-world-behind",
+      "title": "Leave the World Behind",
+      "year": 2023,
+      "director": "Sam Esmail",
+      "minutes": 138,
+      "genres": [
+        "Thriller",
+        "Mystery"
+      ],
+      "logline": "A family's getaway to a rented house turns ominous when a cyberattack knocks out every device.",
+      "image": {
+        "src": "/films/leave-the-world-behind.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#fb6957",
+        "accent": "#fb6957"
+      },
+      "trailer": {
+        "id": "cMVBi_e8o-Y",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "godzilla-minus-one",
+      "title": "Godzilla Minus One",
+      "year": 2023,
+      "director": "Takashi Yamazaki",
+      "minutes": 124,
+      "genres": [
+        "Sci-Fi",
+        "Action",
+        "Drama"
+      ],
+      "logline": "In postwar Japan, a failed kamikaze pilot faces Godzilla as it rises over a devastated nation.",
+      "image": {
+        "src": "/films/godzilla-minus-one.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#d58777",
+        "accent": "#d58777"
+      },
+      "trailer": {
+        "id": "nAYKaslCXPc",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "across-the-spider-verse",
+      "title": "Spider-Man: Across the Spider-Verse",
+      "year": 2023,
+      "director": "Joaquim Dos Santos, Kemp Powers and Justin K. Thompson",
+      "minutes": 140,
+      "genres": [
+        "Animation",
+        "Action",
+        "Adventure"
+      ],
+      "logline": "Miles Morales is thrown across the multiverse and clashes with a society of Spider-People.",
+      "image": {
+        "src": "/films/across-the-spider-verse.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6642",
+        "accent": "#ff6642"
+      },
+      "trailer": {
+        "id": "cqGjhVJWtEg",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "oppenheimer",
+      "title": "Oppenheimer",
+      "year": 2023,
+      "director": "Christopher Nolan",
+      "minutes": 180,
+      "genres": [
+        "Drama",
+        "Thriller"
+      ],
+      "logline": "The physicist J. Robert Oppenheimer leads the race to build the first atomic bomb.",
+      "image": {
+        "src": "/films/oppenheimer.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6837",
+        "accent": "#ff6837"
+      },
+      "trailer": {
+        "id": "bK6ldnjE3Y0",
+        "aspect": 2.2
+      }
+    },
+    {
+      "slug": "john-wick-chapter-4",
+      "title": "John Wick: Chapter 4",
+      "year": 2023,
+      "director": "Chad Stahelski",
+      "minutes": 169,
+      "genres": [
+        "Action",
+        "Thriller"
+      ],
+      "logline": "John Wick takes on the High Table, fighting his way from Osaka to Berlin to Paris.",
+      "image": {
+        "src": "/films/john-wick-chapter-4.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#e67d5d",
+        "accent": "#e67d5d"
+      },
+      "trailer": {
+        "id": "qEVUtrk8_B4",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "the-killer",
+      "title": "The Killer",
+      "year": 2023,
+      "director": "David Fincher",
+      "minutes": 118,
+      "genres": [
+        "Thriller",
+        "Action"
+      ],
+      "logline": "A methodical assassin's life unravels after a job in Paris goes wrong.",
+      "image": {
+        "src": "/films/the-killer.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#41b2b1",
+        "accent": "#41b2b1"
+      },
+      "trailer": {
+        "id": "5S7FR_HCg9g",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "the-creator",
+      "title": "The Creator",
+      "year": 2023,
+      "director": "Gareth Edwards",
+      "minutes": 133,
+      "genres": [
+        "Sci-Fi",
+        "Action"
+      ],
+      "logline": "An ex-special forces agent is sent to destroy an AI weapon that turns out to be a child.",
+      "image": {
+        "src": "/films/the-creator.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#46aec5",
+        "accent": "#46aec5"
+      },
+      "trailer": {
+        "id": "ex3C1-5Dhb8",
+        "aspect": 2.76
+      }
+    },
+    {
+      "slug": "poor-things",
+      "title": "Poor Things",
+      "year": 2023,
+      "director": "Yorgos Lanthimos",
+      "minutes": 141,
+      "genres": [
+        "Sci-Fi",
+        "Comedy",
+        "Drama"
+      ],
+      "logline": "Brought back to life by an eccentric scientist, Bella Baxter runs off on an adventure across Europe.",
+      "image": {
+        "src": "/films/poor-things.webp",
+        "width": 682,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#59a9d3",
+        "accent": "#59a9d3"
+      },
+      "trailer": {
+        "id": "RlbR5N6veqw",
+        "aspect": 1.7778
+      }
+    },
+    {
+      "slug": "the-substance",
+      "title": "The Substance",
+      "year": 2024,
+      "director": "Coralie Fargeat",
+      "minutes": 141,
+      "genres": [
+        "Horror",
+        "Sci-Fi"
+      ],
+      "logline": "A fading celebrity takes a black-market drug that creates a younger, better version of herself.",
+      "image": {
+        "src": "/films/the-substance.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#d68580",
+        "accent": "#d68580"
+      },
+      "trailer": {
+        "id": "LNlrGhBpYjc",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "inside-out-2",
+      "title": "Inside Out 2",
+      "year": 2024,
+      "director": "Kelsey Mann",
+      "minutes": 96,
+      "genres": [
+        "Animation",
+        "Comedy"
+      ],
+      "logline": "New emotions led by Anxiety move into Riley's head just as she becomes a teenager.",
+      "image": {
+        "src": "/films/inside-out-2.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff645c",
+        "accent": "#54a0ff"
+      },
+      "trailer": {
+        "id": "LEjhY15eCx0",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "deadpool-and-wolverine",
+      "title": "Deadpool & Wolverine",
+      "year": 2024,
+      "director": "Shawn Levy",
+      "minutes": 128,
+      "genres": [
+        "Action",
+        "Comedy"
+      ],
+      "logline": "Deadpool is pulled out of retirement by the TVA and recruits a very reluctant Wolverine.",
+      "image": {
+        "src": "/films/deadpool-and-wolverine.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff645a",
+        "accent": "#c89500"
+      },
+      "trailer": {
+        "id": "73_1biulkYk",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "alien-romulus",
+      "title": "Alien: Romulus",
+      "year": 2024,
+      "director": "Fede Álvarez",
+      "minutes": 119,
+      "genres": [
+        "Horror",
+        "Sci-Fi"
+      ],
+      "logline": "Young colonists scavenging a derelict space station meet the most terrifying life form in the universe.",
+      "image": {
+        "src": "/films/alien-romulus.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6555",
+        "accent": "#ff6555"
+      },
+      "trailer": {
+        "id": "OzY2r2JXsDM",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "longlegs",
+      "title": "Longlegs",
+      "year": 2024,
+      "director": "Oz Perkins",
+      "minutes": 101,
+      "genres": [
+        "Horror",
+        "Thriller",
+        "Mystery"
+      ],
+      "logline": "An FBI agent finds a personal link to an elusive serial killer who leaves coded letters.",
+      "image": {
+        "src": "/films/longlegs.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6554",
+        "accent": "#ff6554"
+      },
+      "trailer": {
+        "id": "ou9t6wXJkjE",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "dune-part-two",
+      "title": "Dune: Part Two",
+      "year": 2024,
+      "director": "Denis Villeneuve",
+      "minutes": 166,
+      "genres": [
+        "Sci-Fi",
+        "Adventure",
+        "Action"
+      ],
+      "logline": "Paul Atreides joins the Fremen and wages war on the house that destroyed his family.",
+      "image": {
+        "src": "/films/dune-part-two.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6735",
+        "accent": "#ff6735"
+      },
+      "trailer": {
+        "id": "Way9Dexny3w",
+        "aspect": 1.9
+      }
+    },
+    {
+      "slug": "furiosa",
+      "title": "Furiosa: A Mad Max Saga",
+      "year": 2024,
+      "director": "George Miller",
+      "minutes": 148,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Sci-Fi"
+      ],
+      "logline": "Taken from the Green Place as a child, Furiosa spends years fighting her way home across the wasteland.",
+      "image": {
+        "src": "/films/furiosa.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#f96f23",
+        "accent": "#f96f23"
+      },
+      "trailer": {
+        "id": "XJMuhwVlca4",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "gladiator-ii",
+      "title": "Gladiator II",
+      "year": 2024,
+      "director": "Ridley Scott",
+      "minutes": 148,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Drama"
+      ],
+      "logline": "Years after Maximus, Lucius is forced into the Colosseum to fight for Rome's future.",
+      "image": {
+        "src": "/films/gladiator-ii.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#d38c45",
+        "accent": "#d38c45"
+      },
+      "trailer": {
+        "id": "4rgYUipGJNo",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "nosferatu",
+      "title": "Nosferatu",
+      "year": 2024,
+      "director": "Robert Eggers",
+      "minutes": 132,
+      "genres": [
+        "Horror",
+        "Fantasy"
+      ],
+      "logline": "A young woman in 1830s Germany is haunted by an ancient vampire who is obsessed with her.",
+      "image": {
+        "src": "/films/nosferatu.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#b4a99c",
+        "accent": "#b4a99c"
+      },
+      "trailer": {
+        "id": "nulvWqYUM8k",
+        "aspect": 1.85
+      }
+    },
+    {
+      "slug": "the-wild-robot",
+      "title": "The Wild Robot",
+      "year": 2024,
+      "director": "Chris Sanders",
+      "minutes": 102,
+      "genres": [
+        "Animation",
+        "Sci-Fi",
+        "Adventure"
+      ],
+      "logline": "A robot shipwrecked on a wild island learns to survive and raises an orphaned gosling.",
+      "image": {
+        "src": "/films/the-wild-robot.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#c99500",
+        "accent": "#c99500"
+      },
+      "trailer": {
+        "id": "67vbA5ZJdKQ",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "civil-war",
+      "title": "Civil War",
+      "year": 2024,
+      "director": "Alex Garland",
+      "minutes": 109,
+      "genres": [
+        "Thriller",
+        "Action"
+      ],
+      "logline": "A team of journalists crosses a United States torn apart by war to reach Washington.",
+      "image": {
+        "src": "/films/civil-war.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#62b810",
+        "accent": "#62b810"
+      },
+      "trailer": {
+        "id": "aDyQxtg0V2w",
+        "aspect": 1.85
+      }
+    },
+    {
+      "slug": "flow",
+      "title": "Flow",
+      "year": 2024,
+      "director": "Gints Zilbalodis",
+      "minutes": 80,
+      "genres": [
+        "Animation",
+        "Adventure"
+      ],
+      "logline": "A solitary cat takes refuge on a boat with other animals after a great flood.",
+      "image": {
+        "src": "/films/flow.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#44afc2",
+        "accent": "#44afc2"
+      },
+      "trailer": {
+        "id": "82WW9dVbglI",
+        "aspect": 2
+      }
+    },
+    {
+      "slug": "weapons",
+      "title": "Weapons",
+      "year": 2025,
+      "director": "Zach Cregger",
+      "minutes": 128,
+      "genres": [
+        "Horror",
+        "Mystery"
+      ],
+      "logline": "When every child but one from the same class vanishes on the same night, a town hunts for the cause.",
+      "image": {
+        "src": "/films/weapons.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ee7372",
+        "accent": "#ee7372"
+      },
+      "trailer": {
+        "id": "OpThntO9ixc",
+        "aspect": 2.39
+      }
+    },
+    {
+      "slug": "sinners",
+      "title": "Sinners",
+      "year": 2025,
+      "director": "Ryan Coogler",
+      "minutes": 137,
+      "genres": [
+        "Horror",
+        "Thriller"
+      ],
+      "logline": "Twin brothers return home to Mississippi to open a juke joint, and something evil comes with the night.",
+      "image": {
+        "src": "/films/sinners.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#ff6644",
+        "accent": "#ff6644"
+      },
+      "trailer": {
+        "id": "bKGxHflevuk",
+        "aspect": 2.76
+      }
+    },
+    {
+      "slug": "mickey-17",
+      "title": "Mickey 17",
+      "year": 2025,
+      "director": "Bong Joon Ho",
+      "minutes": 137,
+      "genres": [
+        "Sci-Fi",
+        "Comedy"
+      ],
+      "logline": "An expendable worker on an ice-planet colony is killed and reprinted, until one of his copies survives.",
+      "image": {
+        "src": "/films/mickey-17.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#c89500",
+        "accent": "#c89500"
+      },
+      "trailer": {
+        "id": "osYpGSz_0i4",
+        "aspect": 1.85
+      }
+    },
+    {
+      "slug": "kpop-demon-hunters",
+      "title": "KPop Demon Hunters",
+      "year": 2025,
+      "director": "Chris Appelhans and Maggie Kang",
+      "minutes": 95,
+      "genres": [
+        "Animation",
+        "Action",
+        "Fantasy"
+      ],
+      "logline": "A K-pop girl group secretly protects the world from demons, including a boy band of them.",
+      "image": {
+        "src": "/films/kpop-demon-hunters.webp",
+        "width": 683,
+        "height": 1024
+      },
+      "palette": {
+        "key": "#8394ff",
+        "accent": "#dc69de"
+      },
+      "trailer": {
+        "id": "AzCAwdp1uIQ",
+        "aspect": 2.39
+      }
+    }
+  ]
+}

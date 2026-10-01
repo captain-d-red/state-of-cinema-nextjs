@@ -1,0 +1,64 @@
+:root {
+  --ink: #08090d;
+  --paper: #e8eef0;
+  --paper-2: rgb(239 232 220 / 0.66);
+  --hair: rgb(239 232 220 / 0.16);
+  --rec: #ff4d3d;
+  --gutter: clamp(16px, 2.4vw, 40px);
+  --font-sans: var(--font-ui), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* One fluid root, so the interface keeps its proportions from a phone up to a 4K screen. */
+html {
+  font-size: clamp(14px, calc(min(0.36vw, 0.64vh) + 9px), 26px);
+  background: var(--ink);
+  /* The page scrolls by wheel and touch, and the station ticks already show where you are. */
+  scrollbar-width: none;
+  color: var(--paper);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+  overscroll-behavior: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline-offset: 3px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}

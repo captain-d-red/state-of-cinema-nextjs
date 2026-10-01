@@ -1,0 +1,288 @@
+/*
+ * The small interface type sits over the canvas with a difference blend, so it inverts the
+ * light behind it and stays legible over glow and dark alike. The large station type is set
+ * plainly instead, because inverting a saturated tint turns it into that tint's complement.
+ */
+.hud {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 100dvh;
+  pointer-events: none;
+  color: var(--paper);
+}
+
+.top,
+.bottom {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  mix-blend-mode: difference;
+}
+
+.top {
+  top: var(--gutter);
+}
+
+.bottom {
+  bottom: var(--gutter);
+  align-items: end;
+}
+
+.status,
+.credit {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bottom .credit:last-child,
+.top .repo {
+  justify-self: end;
+}
+
+.brand {
+  pointer-events: auto;
+  color: var(--paper);
+}
+
+.mark {
+  display: block;
+  height: 1.5rem;
+  width: auto;
+}
+
+.repo {
+  pointer-events: auto;
+  display: inline-flex;
+  gap: 0.4em;
+  color: var(--paper);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.repo:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
+/* Station copy, centred over the scene. */
+.centre {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-shadow: 0 0 2.4rem rgb(4 6 8 / 0.42);
+}
+
+.letters {
+  display: inline-block;
+  white-space: pre;
+}
+
+.mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-bottom: 0.08em;
+}
+
+.letter {
+  display: inline-block;
+  animation: rise 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--delay) + var(--i) * 18ms);
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(110%);
+  }
+}
+
+.title {
+  position: absolute;
+  inset: calc(var(--gutter) + 2.6rem) var(--gutter) calc(var(--gutter) + 2.6rem);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.titleLine {
+  margin: 0;
+  font-size: clamp(4rem, 11.6vw, 16rem);
+  font-weight: 450;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+}
+
+.titleEnd {
+  justify-self: end;
+}
+
+.strap {
+  align-self: center;
+  justify-self: center;
+  max-width: 38ch;
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-transform: uppercase;
+  animation: fade 900ms 500ms ease both;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.stat,
+.pick,
+.outro {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+}
+
+.statLabel,
+.pickTitle,
+.outroLine {
+  margin: 0;
+  font-size: clamp(2.6rem, 6.6vw, 9rem);
+  font-weight: 450;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+}
+
+.sup {
+  vertical-align: top;
+  margin-left: 0.15em;
+  font-size: 0.28em;
+  letter-spacing: 0;
+  animation: fade 600ms 300ms ease both;
+}
+
+.footnote {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--gutter) + 4.4rem);
+  translate: -50% 0;
+  width: max-content;
+  max-width: calc(100vw - 2 * var(--gutter));
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  animation: fade 700ms 400ms ease both;
+}
+
+.kicker {
+  margin: 0 0 1rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  animation: fade 600ms ease both;
+}
+
+.byline {
+  margin: 0.6rem 0 0;
+  font-size: clamp(1.1rem, 2.2vw, 2.6rem);
+  font-weight: 450;
+  letter-spacing: -0.015em;
+  animation: fade 700ms 250ms ease both;
+}
+
+/* Long titles shrink so the widest still leaves the gutters clear. */
+.pickTitle {
+  max-width: calc(100vw - 2 * var(--gutter));
+  font-size: clamp(2rem, min(6.6vw, calc(150vw / var(--len))), 9rem);
+}
+
+.play,
+.cta {
+  pointer-events: auto;
+  margin-top: 2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 0.85em 1.4em;
+  border: 0;
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  animation: fade 600ms 500ms ease both;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.play:hover,
+.cta:hover {
+  transform: translateY(-2px);
+}
+
+.playIcon {
+  width: 0;
+  height: 0;
+  border-left: 0.6em solid currentColor;
+  border-top: 0.36em solid transparent;
+  border-bottom: 0.36em solid transparent;
+}
+
+/* Station ticks, tall at the station in view and tapering away from it. */
+.ticks {
+  pointer-events: auto;
+  display: flex;
+  align-items: end;
+  gap: 0.15rem;
+}
+
+.tick {
+  position: relative;
+  width: 1.3rem;
+  height: 3.2rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.tick::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 1px;
+  height: calc(0.7rem + 2.3rem * exp(-0.9 * var(--d) * var(--d)));
+  background: var(--paper);
+  opacity: calc(0.35 + 0.65 * exp(-0.9 * var(--d) * var(--d)));
+  transition:
+    height 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 300ms ease;
+}
+
+@media (max-width: 640px) {
+  .credit {
+    display: none;
+  }
+  .bottom {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+}
