@@ -8,6 +8,10 @@ import { Logotype } from './Logotype';
 interface HudProps {
   story: readonly Station[];
   index: number;
+  /** The number one pick, offered at the end of the flight. */
+  topPick: Film | null;
+  soundOn: boolean;
+  onToggleSound: () => void;
   onPlay: (film: Film) => void;
   onJump: (station: number) => void;
 }
@@ -29,7 +33,7 @@ function Letters({ text, delay = 0 }: { text: string; delay?: number }) {
   );
 }
 
-function Copy({ station, onPlay }: { station: Station; onPlay: (film: Film) => void }) {
+function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | null; onPlay: (film: Film) => void }) {
   switch (station.kind) {
     case 'title':
       return (
@@ -81,14 +85,13 @@ function Copy({ station, onPlay }: { station: Station; onPlay: (film: Film) => v
           <h2 className={styles.outroLine}>
             <Letters text="Now start watching" />
           </h2>
-          <a
-            className={styles.cta}
-            href="https://hero-gallery-threejs.vercel.app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Browse the catalogue
-          </a>
+          {topPick && (
+            <button type="button" className={styles.cta} onClick={() => onPlay(topPick)}>
+              <span className={styles.playIcon} aria-hidden="true" />
+              Watch the top pick
+            </button>
+          )}
+          <p className={styles.footnote}>Every film is on the reel. Click a frame to watch its trailer.</p>
         </div>
       );
   }
@@ -101,7 +104,7 @@ const statusFor = (index: number, count: number): string =>
  * The interface over the flight: the station's copy in the centre, and the status, mark,
  * repository link and station ticks around the edges.
  */
-export function Hud({ story, index, onPlay, onJump }: HudProps) {
+export function Hud({ story, index, topPick, soundOn, onToggleSound, onPlay, onJump }: HudProps) {
   const station = story[index] ?? story[0]!;
   return (
     <div className={styles.hud}>
@@ -118,13 +121,23 @@ export function Hud({ story, index, onPlay, onJump }: HudProps) {
         >
           <Logotype className={styles.mark} />
         </a>
-        <a className={styles.repo} href={REPO_URL} target="_blank" rel="noopener noreferrer">
-          GitHub repo<span aria-hidden="true">↗</span>
-        </a>
+        <div className={styles.actions}>
+          <button type="button" className={styles.sound} aria-pressed={soundOn} onClick={onToggleSound}>
+            Sound {soundOn ? 'on' : 'off'}
+            <span className={styles.bars} aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          </button>
+          <a className={styles.repo} href={REPO_URL} target="_blank" rel="noopener noreferrer">
+            GitHub repo<span aria-hidden="true">↗</span>
+          </a>
+        </div>
       </header>
 
       <section className={styles.centre} aria-live="polite">
-        <Copy station={station} onPlay={onPlay} />
+        <Copy station={station} topPick={topPick} onPlay={onPlay} />
       </section>
 
       <footer className={styles.bottom}>

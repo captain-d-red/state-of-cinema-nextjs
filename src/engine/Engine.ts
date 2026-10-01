@@ -21,6 +21,7 @@ import { clamp, damp, lerp, smoothstep } from '@/lib/math';
 import { GlassWall } from './GlassWall';
 import { createFullscreenGeometry, createHalfFloatTarget, createScreenPass } from './gl';
 import { Numbers } from './Numbers';
+import { Reel } from './Reel';
 import { between, dwell } from './scroll';
 import { RING_SLOTS } from './shaders/field';
 import { bloomExtractFragment, blurFragment, postFragment } from './shaders/post';
@@ -51,6 +52,11 @@ export interface EngineFrame {
   readonly position: number;
   /** Station nearest the camera. */
   readonly station: number;
+  /** Catalogue index of the reel frame under the pointer, once the tunnel has formed. */
+  readonly hoveredFilm: number | null;
+  /** Camera speed in world units a second, and how far the tunnel has formed. */
+  readonly speed: number;
+  readonly tunnel: number;
 }
 
 /** Keeps the drawing buffer near 4K worth of pixels however dense the display is. */
@@ -79,8 +85,11 @@ export class Engine {
   private readonly valley: Valley;
   private readonly numbers: Numbers;
   private readonly walls: GlassWall[];
+  private readonly reel: Reel;
   /** Pointer in normalised device coordinates and how present it is, shared with the figures. */
   private readonly cursor = { value: new Vector3() };
+  /** The raw pointer for picking, in normalised device coordinates with presence in z. */
+  private readonly pick = new Vector3();
   private readonly story: readonly Station[];
   private readonly tints: Vector3[];
   private readonly reducedMotion: boolean;
@@ -95,6 +104,7 @@ export class Engine {
   private startTime: number | null = null;
   private lastTime = 0;
   private lastCameraZ: number | null = null;
+  private speed = 0;
   private speedMean = 0;
   private kick = 0;
   private hover = 0;
@@ -167,6 +177,8 @@ export class Engine {
       s.kind === 'pick' ? [new GlassWall(s.film, stationZ(i), this.valley.uniforms.uCamPos, onError)] : [],
     );
     for (const wall of this.walls) this.scene.add(wall.group);
+    this.reel = new Reel(catalogue.films.length, this.valley.uniforms.uGlow, onError);
+    this.scene.add(this.reel.mesh);
   }
 
   /** Sizes the drawing buffer to the canvas, trading pixel ratio for a fixed pixel budget. */
@@ -223,11 +235,15 @@ export class Engine {
     this.valley.update(this.renderer, z);
     this.numbers.update(z, dt, this.reducedMotion);
     for (const wall of this.walls) wall.update(z, this.camera, this.cursor.value, dt, this.reducedMotion);
+    // Picking a film is navigation, so the reel reads the raw pointer even under reduced motion,
+    // where the cursor that pushes particles and flips tiles is held still.
+    this.pick.set(input.pointerX, input.pointerY, input.pointerActive ? 1 : 0);
+    const hoveredFilm = this.reel.update(time, this.camera, this.pick, tunnel, dt, this.reducedMotion);
 
     this.postPass.uTime!.value = time;
     this.postPass.uFade!.value = this.reducedMotion ? 1 : smoothstep(0, 0.8, age);
     this.render();
-    return { position, station: Math.round(position) };
+    return { position, station: Math.round(position), hoveredFilm, speed: this.speed, tunnel };
   }
 
   /**
@@ -258,6 +274,7 @@ export class Engine {
     this.camera.lookAt(this.look);
 
     const speed = this.lastCameraZ === null ? 0 : Math.abs(z - this.lastCameraZ) / dt;
+    this.speed = damp(this.speed, speed, 8, dt);
     this.lastCameraZ = z;
     this.speedMean = damp(this.speedMean, speed, 2.4, dt);
     const impulse = this.reducedMotion ? 0 : 1 - Math.exp(-KICK.gain * Math.max(0, speed - this.speedMean));
@@ -310,6 +327,7 @@ export class Engine {
     this.valley.dispose();
     this.numbers.dispose();
     for (const wall of this.walls) wall.dispose();
+    this.reel.dispose();
     this.sceneTarget.dispose();
     for (const target of this.bloomTargets) target.dispose();
     this.screen.dispose();

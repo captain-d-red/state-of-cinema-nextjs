@@ -8,6 +8,7 @@ import { Engine } from '@/engine/Engine';
 import { SCROLL_PER_STATION } from '@/engine/scroll';
 import { uiFont } from '@/lib/fonts';
 import { clamp } from '@/lib/math';
+import { Sound } from '@/lib/sound';
 import styles from './Cinema.module.css';
 import { Hud } from './Hud';
 import { TrailerDialog } from './TrailerDialog';
@@ -16,6 +17,8 @@ type Status = 'starting' | 'running' | 'unsupported';
 
 const story = buildStory(catalogue);
 const COUNT = story.length;
+/** The last pick in the story is number one, the film the outro offers to play. */
+const topPick = story.flatMap((s) => (s.kind === 'pick' ? [s.film] : [])).at(-1) ?? null;
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
 /**
@@ -29,6 +32,8 @@ export function Cinema() {
   const [station, setStation] = useState(0);
   const [status, setStatus] = useState<Status>('starting');
   const [playing, setPlaying] = useState<Film | null>(null);
+  const [soundOn, setSoundOn] = useState(false);
+  const soundRef = useRef<Sound | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -40,6 +45,7 @@ export function Cinema() {
     let engine: Engine | null = null;
     let raf = 0;
     let shown = -1;
+    let hovered: number | null = null;
 
     jumpRef.current = (target) => {
       const i = clamp(Math.round(target), 0, COUNT - 1);
@@ -64,6 +70,9 @@ export function Cinema() {
       locate(e);
       pointer.active = true;
       pointer.clicks += 1;
+    };
+    const onClick = () => {
+      if (hovered !== null) setPlaying(catalogue.films[hovered] ?? null);
     };
     const onPointerUp = (e: PointerEvent) => {
       if (e.pointerType === 'touch') pointer.active = false;
@@ -95,6 +104,9 @@ export function Cinema() {
         clicks: pointer.clicks,
       });
       pointer.clicks = 0;
+      hovered = frame.hoveredFilm;
+      soundRef.current?.update(frame);
+      canvas.style.cursor = hovered !== null ? 'pointer' : '';
       if (frame.station !== shown) {
         shown = frame.station;
         setStation(frame.station);
@@ -135,6 +147,7 @@ export function Cinema() {
     window.addEventListener('pointercancel', onPointerUp, { passive: true });
     document.documentElement.addEventListener('pointerleave', onPointerLeave);
     window.addEventListener('keydown', onKey);
+    canvas.addEventListener('click', onClick);
 
     return () => {
       disposed = true;
@@ -146,12 +159,25 @@ export function Cinema() {
       window.removeEventListener('pointercancel', onPointerUp);
       document.documentElement.removeEventListener('pointerleave', onPointerLeave);
       window.removeEventListener('keydown', onKey);
+      canvas.removeEventListener('click', onClick);
       lenis.destroy();
       lenisRef.current = null;
+      soundRef.current?.dispose();
+      soundRef.current = null;
       engine?.dispose();
       engine = null;
     };
   }, []);
+
+  // Sound starts from the toggle, the user gesture browsers require, and the trailer silences it.
+  const toggleSound = () => {
+    const next = !soundOn;
+    soundRef.current ??= next ? new Sound() : null;
+    setSoundOn(next);
+  };
+  useEffect(() => {
+    soundRef.current?.setEnabled(soundOn && !playing);
+  }, [soundOn, playing]);
 
   // The page holds still under the trailer, so a wheel inside the player never flies the camera.
   useEffect(() => {
@@ -165,7 +191,15 @@ export function Cinema() {
     <div className={styles.root} data-status={status}>
       <div className={styles.stage}>
         <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" />
-        <Hud story={story} index={station} onPlay={setPlaying} onJump={(i) => jumpRef.current(i)} />
+        <Hud
+          story={story}
+          index={station}
+          topPick={topPick}
+          soundOn={soundOn}
+          onToggleSound={toggleSound}
+          onPlay={setPlaying}
+          onJump={(i) => jumpRef.current(i)}
+        />
       </div>
       {status === 'unsupported' && (
         <p className={styles.unsupported} role="status">

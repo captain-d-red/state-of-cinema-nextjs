@@ -41,8 +41,61 @@
 }
 
 .bottom .credit:last-child,
-.top .repo {
+.top .actions {
   justify-self: end;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1.6rem;
+}
+
+.sound {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+/* Three level bars, still when the sound is off and dancing out of phase when it is on. */
+.bars {
+  display: inline-flex;
+  align-items: end;
+  gap: 2px;
+  height: 0.8em;
+}
+
+.bars span {
+  width: 2px;
+  height: 30%;
+  background: currentColor;
+}
+
+.sound[aria-pressed='true'] .bars span {
+  animation: level 900ms ease-in-out infinite alternate;
+}
+
+.sound[aria-pressed='true'] .bars span:nth-child(2) {
+  animation-delay: -300ms;
+}
+
+.sound[aria-pressed='true'] .bars span:nth-child(3) {
+  animation-delay: -600ms;
+}
+
+@keyframes level {
+  to {
+    height: 100%;
+  }
 }
 
 .brand {
@@ -154,6 +207,14 @@
   place-items: center;
   align-content: center;
   text-align: center;
+}
+
+/* On wide screens the pick's copy sits under its glass wall, so the type never covers the poster. */
+@media (min-aspect-ratio: 1/1) {
+  .pick {
+    align-content: end;
+    padding-bottom: calc(var(--gutter) + 8.5rem);
+  }
 }
 
 .statLabel,
