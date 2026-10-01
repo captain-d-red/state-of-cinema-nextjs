@@ -42,8 +42,8 @@ function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | 
             <Letters text="The state" />
           </h1>
           <p className={styles.strap}>
-            An overview of seventy-two films in numbers and picks: what the catalogue holds, who made the most of it and
-            what sits at the top tonight.
+            Seventy-two films from sixteen years of cinema. Fly the valley to count them, meet the three we would watch
+            tonight, and find every one on the reel.
           </p>
           <p className={`${styles.titleLine} ${styles.titleEnd}`} aria-hidden="true">
             <Letters text="of cinema" delay={160} />
@@ -84,7 +84,7 @@ function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | 
       return (
         <div className={styles.outro} key="outro">
           <h2 className={styles.outroLine}>
-            <Letters text="Now start watching" />
+            <Letters text="Pick tonight's film" />
           </h2>
           {topPick && (
             <button type="button" className={styles.cta} onClick={() => onPlay(topPick)}>
@@ -98,8 +98,9 @@ function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | 
   }
 }
 
+/** The status line reads like a projection booth: waiting to roll, rolling, then the last reel. */
 const statusFor = (index: number, count: number): string =>
-  index === 0 ? 'Scroll to dive in' : index >= count - 2 ? 'Almost there' : 'Keep going';
+  index === 0 ? 'Scroll to roll' : index >= count - 2 ? 'Last reel' : `Reel ${index} of ${count - 2}`;
 
 /**
  * The interface over the flight: the station's copy in the centre, and the status, mark,
@@ -163,7 +164,7 @@ export function Hud({ story, index, topPick, soundOn, onToggleSound, onPlay, onJ
             />
           ))}
         </nav>
-        <p className={styles.credit}>Made by AK47</p>
+        <p className={styles.credit}>A film by AK47</p>
       </footer>
     </div>
   );

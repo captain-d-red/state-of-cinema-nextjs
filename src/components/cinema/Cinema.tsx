@@ -44,7 +44,9 @@ export function Cinema() {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const lenis = new Lenis({ autoRaf: false, lerp: reducedMotion ? 1 : 0.08, wheelMultiplier: 0.9 });
     lenisRef.current = lenis;
-    const pointer = { x: 0, y: 0, active: false, clicks: 0 };
+    const pointer = { x: 0, y: 0, active: false };
+    /** Taps and clicks since the last frame, in normalised device coordinates. */
+    let taps: { x: number; y: number }[] = [];
     let engine: Engine | null = null;
     let raf = 0;
     let shown = -1;
@@ -73,10 +75,15 @@ export function Cinema() {
       if (e.target !== canvas) return;
       locate(e);
       pointer.active = true;
-      pointer.clicks += 1;
     };
-    const onClick = () => {
-      if (hovered !== null) setPlaying(catalogue.films[hovered] ?? null);
+    // A click fires for a tap but never for a swipe, so only a deliberate press sends a ring.
+    const onClick = (e: MouseEvent) => {
+      if (hovered !== null) {
+        setPlaying(catalogue.films[hovered] ?? null);
+        return;
+      }
+      const box = canvas.getBoundingClientRect();
+      taps.push({ x: ((e.clientX - box.left) / box.width) * 2 - 1, y: 1 - ((e.clientY - box.top) / box.height) * 2 });
     };
     const onPointerUp = (e: PointerEvent) => {
       if (e.pointerType === 'touch') pointer.active = false;
@@ -105,9 +112,9 @@ export function Cinema() {
         pointerX: pointer.x,
         pointerY: pointer.y,
         pointerActive: pointer.active,
-        clicks: pointer.clicks,
+        taps,
       });
-      pointer.clicks = 0;
+      taps = [];
       hovered = frame.hoveredFilm;
       if (!began) {
         if (countRef.current) countRef.current.textContent = String(Math.round(frame.loaded * 100));

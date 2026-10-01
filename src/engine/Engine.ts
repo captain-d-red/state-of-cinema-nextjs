@@ -47,8 +47,8 @@ export interface EngineInput {
   readonly pointerX: number;
   readonly pointerY: number;
   readonly pointerActive: boolean;
-  /** Presses since the last frame, each one a ring sent across the dunes. */
-  readonly clicks: number;
+  /** Taps and clicks since the last frame, in normalised device coordinates, each one a ring sent across the dunes. */
+  readonly taps: readonly { readonly x: number; readonly y: number }[];
 }
 
 export interface EngineFrame {
@@ -108,6 +108,7 @@ export class Engine {
   private readonly raycaster = new Raycaster();
   private readonly ground = new Plane(new Vector3(0, 1, 0), 0);
   private readonly hit = new Vector3();
+  private readonly tapHit = new Vector3();
   private readonly look = new Vector3();
   private readonly orbit = new Vector2();
   private readonly tint = new Vector3();
@@ -336,7 +337,7 @@ export class Engine {
     this.camera.updateMatrixWorld();
   }
 
-  /** The pointer raises a soft bump where it rests on the dunes, and a press sends a ring out. */
+  /** The pointer raises a soft bump where it rests on the dunes, and a tap sends a ring out from where it lands. */
   private touchGround(input: EngineInput, time: number, dt: number): void {
     let over = false;
     if (input.pointerActive && !this.reducedMotion) {
@@ -352,8 +353,11 @@ export class Engine {
     else h.z = this.hover;
     this.valley.mark(over && this.lastHit ? [this.lastHit.x, this.lastHit.z, this.hit.x, this.hit.z] : null);
     this.lastHit = over ? (this.lastHit ?? new Vector3()).copy(this.hit) : null;
-    for (let i = 0; i < input.clicks && over; i++) {
-      this.valley.uniforms.uRings.value[this.nextRing]!.set(this.hit.x, this.hit.z, time);
+    if (this.reducedMotion) return;
+    for (const tap of input.taps) {
+      this.raycaster.setFromCamera(new Vector2(tap.x, tap.y), this.camera);
+      if (!this.raycaster.ray.intersectPlane(this.ground, this.tapHit)) continue;
+      this.valley.uniforms.uRings.value[this.nextRing]!.set(this.tapHit.x, this.tapHit.z, time);
       this.nextRing = (this.nextRing + 1) % RING_SLOTS;
     }
   }
