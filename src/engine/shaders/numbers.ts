@@ -57,7 +57,7 @@ void main() {
   clip.xy += (dir + vec2(-dir.y, dir.x) * 0.35) * bell * 0.025 * uCursor.z * clip.w;
   gl_Position = clip;
 
-  gl_PointSize = 1.7 * uPointScale * clamp(8.0 / max(-view.z, 0.5), 0.4, 1.6) * (1.0 + fall * 1.8);
+  gl_PointSize = 2.3 * uPointScale * clamp(8.0 / max(-view.z, 0.5), 0.4, 1.6) * (1.0 + fall * 1.8);
   vColour = aColour;
   vAlpha = smoothstep(0.35, 1.0, own) * uVisible;
   vLift = fall;
@@ -75,7 +75,7 @@ void main() {
   if (r2 > 1.0) discard;
   vec3 n = vec3(c, sqrt(1.0 - r2));
   vec3 l = normalize(vec3(0.4, 0.8, 0.6));
-  float shade = 0.45 + 0.7 * max(dot(n, l), 0.0);
+  float shade = 0.6 + 0.85 * max(dot(n, l), 0.0);
   float gloss = 0.4 * pow(max(dot(n, normalize(l + vec3(0.0, 0.0, 1.0))), 0.0), 16.0);
   // A particle under the pointer brightens toward white, the way grain catches a lamp.
   vec3 colour = mix(vColour * shade + gloss, vec3(1.0), clamp(vLift * 1.4, 0.0, 1.0));

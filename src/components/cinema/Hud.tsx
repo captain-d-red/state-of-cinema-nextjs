@@ -122,8 +122,14 @@ export function Hud({ story, index, topPick, soundOn, onToggleSound, onPlay, onJ
           <Logotype className={styles.mark} />
         </a>
         <div className={styles.actions}>
-          <button type="button" className={styles.sound} aria-pressed={soundOn} onClick={onToggleSound}>
-            Sound {soundOn ? 'on' : 'off'}
+          <button
+            type="button"
+            className={styles.sound}
+            aria-label="Sound"
+            aria-pressed={soundOn}
+            onClick={onToggleSound}
+          >
+            <span className={styles.wide}>Sound {soundOn ? 'on' : 'off'}</span>
             <span className={styles.bars} aria-hidden="true">
               <span />
               <span />
@@ -131,7 +137,8 @@ export function Hud({ story, index, topPick, soundOn, onToggleSound, onPlay, onJ
             </span>
           </button>
           <a className={styles.repo} href={REPO_URL} target="_blank" rel="noopener noreferrer">
-            GitHub repo<span aria-hidden="true">↗</span>
+            GitHub<span className={styles.wide}>&nbsp;repo</span>
+            <span aria-hidden="true">↗</span>
           </a>
         </div>
       </header>

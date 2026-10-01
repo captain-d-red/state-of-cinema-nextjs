@@ -339,8 +339,12 @@
 }
 
 @media (max-width: 640px) {
-  .credit {
+  .credit,
+  .wide {
     display: none;
+  }
+  .actions {
+    gap: 1rem;
   }
   .bottom {
     grid-template-columns: 1fr;

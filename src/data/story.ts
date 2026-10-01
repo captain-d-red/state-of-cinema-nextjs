@@ -43,9 +43,9 @@ export function buildStory({ films }: Catalogue): readonly Station[] {
   const firstOf = (slugs: readonly string[]): Film => find(slugs[0] ?? films[0]!.slug);
   const many = topDirectors.names.length > 1;
 
-  const picks = TOP_PICKS.map((slug, i) => {
+  const picks = TOP_PICKS.map(({ slug, tint }, i) => {
     const film = find(slug);
-    return { kind: 'pick', tint: film.palette.key, rank: TOP_PICKS.length - i, film } as const;
+    return { kind: 'pick', tint, rank: TOP_PICKS.length - i, film } as const;
   });
 
   return [

@@ -20,7 +20,7 @@ describe('buildStory', () => {
     const ranks = story.flatMap((s) => (s.kind === 'pick' ? [s.rank] : []));
     expect(ranks).toEqual([3, 2, 1]);
     const last = story.filter((s) => s.kind === 'pick').at(-1);
-    expect(last?.kind === 'pick' && last.film.slug).toBe(TOP_PICKS.at(-1));
+    expect(last?.kind === 'pick' && last.film.slug).toBe(TOP_PICKS.at(-1)?.slug);
   });
 
   it('gives every station a hex tint', () => {
