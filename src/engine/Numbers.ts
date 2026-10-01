@@ -15,7 +15,7 @@ import { clamp, smoothstep } from '@/lib/math';
 import { ATLAS } from '@/data/atlas';
 import { numbersFragment, numbersVertex } from './shaders/numbers';
 import type { ValleyUniforms } from './Valley';
-import { CAMERA } from './world';
+import { CAMERA, valleyCentre } from './world';
 
 /**
  * Posters in one figure. Each particle is a tiny print of one of the films the figure counts,
@@ -110,7 +110,7 @@ export class Numbers {
         uniforms: {
           ...shared,
           ...uniforms,
-          uCentre: { value: new Vector3(0, LIFT + GLYPH_HEIGHT / 2, figure.z) },
+          uCentre: { value: new Vector3(valleyCentre(figure.z), LIFT + GLYPH_HEIGHT / 2, figure.z) },
           uCursor: cursor,
           uAtlas: atlas,
           uAtlasCells: { value: new Vector2(ATLAS.columns, ATLAS.rows) },

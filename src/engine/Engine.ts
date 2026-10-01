@@ -27,7 +27,7 @@ import { Reel } from './Reel';
 import { between, dwell } from './scroll';
 import { RING_SLOTS } from './shaders/field';
 import { Valley } from './Valley';
-import { CAMERA, cameraZ, stationZ } from './world';
+import { CAMERA, cameraZ, stationZ, valleyCentre } from './world';
 
 export interface EngineOptions {
   readonly canvas: HTMLCanvasElement;
@@ -76,6 +76,8 @@ const BACKGROUND = '#08090d';
  * to how far the speed jumps above its own running average, then both relax.
  */
 const KICK = { roll: 0.12, fov: 24, gain: 0.18 } as const;
+/** Roll per unit of lateral acceleration, and the most the camera may lean into a bend, in radians. */
+const BANK = { gain: 0.012, max: 0.09 } as const;
 
 export class Engine {
   private readonly renderer: WebGLRenderer;
@@ -113,6 +115,7 @@ export class Engine {
   private speed = 0;
   private speedMean = 0;
   private kick = 0;
+  private bank = 0;
   private hover = 0;
   private nextRing = 0;
   private lastHit: Vector3 | null = null;
@@ -229,7 +232,8 @@ export class Engine {
     u.uTime.value = time;
     u.uIntro.value = intro;
     u.uCamPos.value.copy(this.camera.position);
-    u.uFocus.value.set(0, z - CAMERA.lookAhead + 0.4);
+    const focusZ = z - CAMERA.lookAhead + 0.4;
+    u.uFocus.value.set(valleyCentre(focusZ), focusZ);
     this.tint.set(...mixOklch(this.tints[from]!, this.tints[to]!, smoothstep(0, 1, t)));
     this.applyTint(this.tint);
     u.uTunnel.value = tunnel;
@@ -274,10 +278,13 @@ export class Engine {
     );
     // The camera drops out of the sky as the scene boots, and leans toward the pointer.
     const drop = (1 - intro) * 8;
-    this.camera.position.set(this.orbit.x * 0.22, CAMERA.height + drop + this.orbit.y * 0.1, z);
+    // The camera rides the valley's centre line and looks down it to where the line will be.
+    const here = valleyCentre(z);
+    const ahead = valleyCentre(z - CAMERA.lookAhead);
+    this.camera.position.set(here + this.orbit.x * 0.22, CAMERA.height + drop + this.orbit.y * 0.1, z);
     const tall = this.aspect < 0.8;
     const lookY = lerp(tall ? CAMERA.lookHeightTall : CAMERA.lookHeight, CAMERA.height, tunnel);
-    this.look.set(this.orbit.x * 0.06, lookY, z - CAMERA.lookAhead);
+    this.look.set(ahead + this.orbit.x * 0.06, lookY, z - CAMERA.lookAhead);
     this.camera.lookAt(this.look);
 
     const speed = this.lastCameraZ === null ? 0 : Math.abs(z - this.lastCameraZ) / dt;
@@ -287,6 +294,13 @@ export class Engine {
     const impulse = this.reducedMotion ? 0 : 1 - Math.exp(-KICK.gain * Math.max(0, speed - this.speedMean));
     this.kick = damp(this.kick, impulse, impulse > this.kick ? 5.4 : 2.4, dt);
     this.camera.rotateZ(this.kick * KICK.roll);
+    // Banking into a bend: the lateral acceleration on a path x(z) flown at speed v is v²·x″,
+    // and the camera rolls toward the inside of the turn in proportion, then levels when parked.
+    const h = 0.5;
+    const curvature = (valleyCentre(z - h) - 2 * valleyCentre(z) + valleyCentre(z + h)) / (h * h);
+    const lean = this.reducedMotion ? 0 : clamp(curvature * this.speed * this.speed * BANK.gain, -BANK.max, BANK.max);
+    this.bank = damp(this.bank, lean, 3, dt);
+    this.camera.rotateZ(this.bank);
     const base = tall ? CAMERA.fovTall : CAMERA.fov;
     this.camera.fov = base + this.kick * KICK.fov;
     this.camera.updateProjectionMatrix();

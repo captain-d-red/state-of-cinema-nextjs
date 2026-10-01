@@ -42,3 +42,13 @@ export const stationZ = (index: number): number => (index === 0 ? 0 : FIRST_STAT
 
 /** Where the camera stands to frame a station. */
 export const cameraZ = (index: number): number => stationZ(index) + CAMERA.lookAhead;
+
+/**
+ * The valley winds like a river bed, so the flight banks through long bends instead of
+ * running straight. Its centre line swings across x as a sine of z.
+ *
+ *   centre(z) = 1.6 · sin(2π · z / 36)        one full swing every four stations
+ */
+export const BEND = { amplitude: 1.6, period: 36 } as const;
+
+export const valleyCentre = (z: number): number => BEND.amplitude * Math.sin((2 * Math.PI * z) / BEND.period);

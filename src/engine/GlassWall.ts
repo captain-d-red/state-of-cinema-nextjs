@@ -20,7 +20,7 @@ import type { Film } from '@/data/catalogue';
 import { hexToLinear } from '@/lib/color';
 import { clamp, smoothstep } from '@/lib/math';
 import { glassFragment, glassVertex } from './shaders/glass';
-import { CAMERA } from './world';
+import { CAMERA, valleyCentre } from './world';
 
 /** A poster is two by three, so the wall is eight tiles across and twelve down. */
 const COLUMNS = 8;
@@ -112,7 +112,7 @@ export class GlassWall {
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 50;
     this.group.add(this.mesh);
-    this.group.position.set(0, BASE + HEIGHT / 2, z);
+    this.group.position.set(valleyCentre(z), BASE + HEIGHT / 2, z);
     this.group.visible = false;
 
     fetch(film.image.src, { signal: this.abort.signal })

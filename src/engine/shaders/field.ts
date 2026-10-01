@@ -1,4 +1,4 @@
-import { TERRAIN } from '../world';
+import { BEND, TERRAIN } from '../world';
 import { f, glsl, hash } from './common';
 
 /** Ring slots a click can occupy at once. A fifth click reuses the oldest slot. */
@@ -41,9 +41,17 @@ float dunes(vec2 xz) {
   return (gnoise(p) + 0.45 * gnoise(p * 2.5 + 13.1)) * ${f(TERRAIN.relief)};
 }
 
-/** The valley walls, flat across the flight path and climbing as a power of the distance past it. */
-float valley(float x) {
-  float d = max(abs(x) - ${f(TERRAIN.corridorWidth)}, 0.0);
+/** The valley's winding centre line, the same sine as \`valleyCentre\` in world.ts. */
+float valleyCentre(float z) {
+  return ${f(BEND.amplitude)} * sin(6.2831853 * z / ${f(BEND.period)});
+}
+
+/**
+ * The valley walls, flat across the flight path and climbing as a power of the distance
+ * past it, measured from the winding centre line rather than from x = 0.
+ */
+float valley(vec2 xz) {
+  float d = max(abs(xz.x - valleyCentre(xz.y)) - ${f(TERRAIN.corridorWidth)}, 0.0);
   return pow(d, ${f(TERRAIN.corridorSharpness)}) * ${f(TERRAIN.corridorHeight)};
 }
 
@@ -68,6 +76,6 @@ float rings(vec2 xz) {
 
 float terrainHeight(vec2 xz) {
   float hover = exp(-dot(xz - uHover.xy, xz - uHover.xy) / 0.42) * 0.11 * uHover.z;
-  return (dunes(xz) + rings(xz) + hover) * uIntro + valley(xz.x);
+  return (dunes(xz) + rings(xz) + hover) * uIntro + valley(xz);
 }
 `;
