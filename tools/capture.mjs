@@ -37,10 +37,7 @@ const url = args.find((a) => a.startsWith('http')) ?? 'http://localhost:4444';
 const stops = flag('stops', '0,1,2,3,4,5,6,7').split(',').map(Number);
 const sizes = flag('sizes', 'laptop').split(',');
 const settle = Number(flag('settle', '3200'));
-const stations = Number(flag('stations', '9'));
 const stir = args.includes('--stir');
-/** Matches the wheel multiplier the page gives its smooth scroller. */
-const WHEEL_SCALE = 0.9;
 const outDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'shots');
 await fs.mkdir(outDir, { recursive: true });
 
@@ -61,23 +58,13 @@ for (const name of sizes) {
   await page.waitForTimeout(2500);
   await page.mouse.move(width * 0.8, height * 0.12);
 
+  let at = 0;
   for (const stop of stops) {
-    // Each stop is a station, reached with real wheel input like a visitor would.
-    const target = await page.evaluate(
-      ([s, n]) => Math.round((s / (n - 1)) * (document.documentElement.scrollHeight - window.innerHeight)),
-      [stop, stations],
-    );
-    for (let pass = 0; pass < 5; pass++) {
-      const current = await page.evaluate(() => window.scrollY);
-      let remaining = (target - current) / WHEEL_SCALE;
-      if (Math.abs(target - current) <= 3) break;
-      while (Math.abs(remaining) > 0.5) {
-        const delta = Math.max(-240, Math.min(240, remaining));
-        await page.mouse.wheel(0, delta);
-        await page.waitForTimeout(30);
-        remaining -= delta;
-      }
-      await page.waitForTimeout(1400);
+    // The page's own keyboard stepping lands exactly on a station on every device, where a
+    // wheel distance depends on how the browser sizes the large viewport.
+    for (; at < stop; at++) {
+      await page.keyboard.press('ArrowDown');
+      await page.waitForTimeout(1500);
     }
     await page.waitForTimeout(settle);
     if (stir) {

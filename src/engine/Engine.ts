@@ -99,6 +99,7 @@ export class Engine {
   private kick = 0;
   private hover = 0;
   private nextRing = 0;
+  private lastHit: Vector3 | null = null;
 
   constructor({ canvas, catalogue, story, fontFamily, reducedMotion, onError }: EngineOptions) {
     this.story = story;
@@ -250,7 +251,8 @@ export class Engine {
     // The camera drops out of the sky as the scene boots, and leans toward the pointer.
     const drop = (1 - intro) * 8;
     this.camera.position.set(this.orbit.x * 0.22, CAMERA.height + drop + this.orbit.y * 0.1, z);
-    this.look.set(this.orbit.x * 0.06, CAMERA.lookHeight, z - CAMERA.lookAhead);
+    const tall = this.aspect < 0.8;
+    this.look.set(this.orbit.x * 0.06, tall ? CAMERA.lookHeightTall : CAMERA.lookHeight, z - CAMERA.lookAhead);
     this.camera.lookAt(this.look);
 
     const speed = this.lastCameraZ === null ? 0 : Math.abs(z - this.lastCameraZ) / dt;
@@ -259,7 +261,7 @@ export class Engine {
     const impulse = this.reducedMotion ? 0 : 1 - Math.exp(-KICK.gain * Math.max(0, speed - this.speedMean));
     this.kick = damp(this.kick, impulse, impulse > this.kick ? 5.4 : 2.4, dt);
     this.camera.rotateZ(this.kick * KICK.roll);
-    const base = this.aspect < 0.8 ? CAMERA.fovTall : CAMERA.fov;
+    const base = tall ? CAMERA.fovTall : CAMERA.fov;
     this.camera.fov = base + this.kick * KICK.fov;
     this.camera.updateProjectionMatrix();
     this.camera.updateMatrixWorld();
@@ -279,6 +281,8 @@ export class Engine {
     const h = this.valley.uniforms.uHover.value;
     if (over) h.set(damp(h.x, this.hit.x, 3, dt), damp(h.y, this.hit.z, 3, dt), this.hover);
     else h.z = this.hover;
+    this.valley.mark(over && this.lastHit ? [this.lastHit.x, this.lastHit.z, this.hit.x, this.hit.z] : null);
+    this.lastHit = over ? (this.lastHit ?? new Vector3()).copy(this.hit) : null;
     for (let i = 0; i < input.clicks && over; i++) {
       this.valley.uniforms.uRings.value[this.nextRing]!.set(this.hit.x, this.hit.z, time);
       this.nextRing = (this.nextRing + 1) % RING_SLOTS;

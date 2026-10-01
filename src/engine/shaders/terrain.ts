@@ -1,6 +1,6 @@
 import { TERRAIN } from '../world';
 import { f, glsl, header } from './common';
-import { field } from './field';
+import { RING_SLOTS, field } from './field';
 
 /**
  * Colours of the valley, already in linear light. The engine blends them between stations,
@@ -79,6 +79,9 @@ ${field}
 ${look}
 uniform sampler2D uRidges;
 uniform vec3 uRidgeRect;
+/** The pointer's fading mark over the ground, and the world rectangle it covers. */
+uniform sampler2D uTrail;
+uniform vec4 uTrailRect;
 in vec3 vWorld;
 in float vRelief;
 out vec4 fragColor;
@@ -88,6 +91,35 @@ const vec3 CREST = vec3(0.0036, 0.0045, 0.0065);
 const vec3 LIGHT = normalize(vec3(-0.017, 0.292, -0.956));
 const int HAZE_STEPS = 18;
 const float HAZE_REACH = 11.0;
+
+/** Screen blend, which brightens toward white without washing a colour out the way adding does. */
+vec3 screen(vec3 base, vec3 light) {
+  return 1.0 - (1.0 - clamp(base, 0.0, 1.0)) * (1.0 - clamp(light, 0.0, 1.0));
+}
+
+/**
+ * Light from the click rings. Each ring's radius eases out over its life, its edge softens as
+ * it ages, and a noise threshold that rises with age and with distance eats it into chunks.
+ */
+vec3 ringLight(vec2 xz) {
+  vec3 sum = vec3(0.0);
+  for (int i = 0; i < ${RING_SLOTS}; i++) {
+    vec3 ring = uRings[i];
+    float age = uTime - ring.z;
+    if (ring.z < 0.0 || age < 0.0 || age > 1.05) continue;
+    float life = age / 1.05;
+    float radius = 1.05 * 2.2 * (1.0 - (1.0 - life) * (1.0 - life));
+    float d = length(xz - ring.xy) + gnoise(xz * 11.55 + uTime * 0.4) * 0.05;
+    float soft = 0.07 * (1.0 + 3.5 * smoothstep(0.0, 1.0, life));
+    float edge = 1.0 - smoothstep(0.0, soft, abs(d - radius));
+    edge = edge * edge * (3.0 - 2.0 * edge);
+    float fade = 1.0 - life * life * life * (life * (life * 6.0 - 15.0) + 10.0);
+    float chunks = gnoise(xz * 32.0 + vec2(uTime * 0.9, -uTime * 0.7)) * 0.5 + 0.5;
+    float cut = max(smoothstep(0.2, 1.0, life) * 0.9, smoothstep(0.6, 1.15, d / max(radius, 1e-3)) * 0.7);
+    sum += uGlow * edge * fade * smoothstep(cut - 0.06, cut + 0.06, chunks);
+  }
+  return sum * 3.0;
+}
 
 float ridgeAt(vec2 xz) {
   vec2 uv = (xz - uRidgeRect.xy) / uRidgeRect.z;
@@ -115,6 +147,22 @@ void main() {
   vec3 lit = colour * (0.45 + 0.55 * lambert * uGlow);
   float ridge = ridgeAt(vWorld.xz);
   lit += uGlow * ridge * 0.14 * smoothstep(0.3, 0.85, uIntro);
+
+  // Where the pointer has passed, the ground shows its contour lines in the station's light
+  // and a warm film light leak, the orange and magenta of light fogging the edge of a roll.
+  float mark = texture(uTrail, (vWorld.xz - uTrailRect.xy) / uTrailRect.zw).r;
+  float trail = smoothstep(0.04, 0.5, mark);
+  float spacing = 0.015;
+  // Height is evaluated per pixel, not interpolated from the vertices, so the lines run as
+  // smooth curves instead of straight chords across each triangle.
+  float height = terrainHeight(vWorld.xz);
+  float band = abs(mod(height + spacing * 0.5, spacing) - spacing * 0.5);
+  float w = fwidth(height);
+  float line = max(1.0 - smoothstep(0.0, w * 1.1, band), (1.0 - smoothstep(0.0, w * 12.0, band)) * 0.3);
+  float hue = gnoise(vWorld.xz * 1.6 + uTime * 0.18) * 0.5 + 0.5;
+  vec3 leak = mix(vec3(1.0, 0.42, 0.08), vec3(0.95, 0.12, 0.42), hue);
+  lit = screen(lit, (uGlow * line * 0.9 + leak * 0.32 * (0.4 + 0.6 * smoothstep(0.35, 0.75, mark))) * trail);
+  lit = screen(lit, ringLight(vWorld.xz));
 
   float focus = 1.0 - fog;
   if (focus > 0.01) {

@@ -12,6 +12,8 @@ export const CAMERA = {
   height: 1.2,
   lookAhead: 5.5,
   lookHeight: 0.1,
+  /** Tall screens look further down, so the valley fills the frame instead of the night sky. */
+  lookHeightTall: -0.9,
   /** Vertical field of view in degrees, wider on tall screens so the valley still reads. */
   fov: 52,
   fovTall: 72,

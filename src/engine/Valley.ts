@@ -12,14 +12,16 @@ import {
   Scene,
   Vector2,
   Vector3,
+  Vector4,
   type IUniform,
   type WebGLRenderer,
   type WebGLRenderTarget,
 } from 'three';
-import { createHalfFloatTarget, createScreenPass } from './gl';
+import { PingPong, createHalfFloatTarget, createScreenPass } from './gl';
 import { RING_SLOTS } from './shaders/field';
 import { dotsFragment, dotsVertex, dustFragment, dustVertex } from './shaders/particles';
 import { ridgeFragment, terrainFragment, terrainVertex } from './shaders/terrain';
+import { trailFragment } from './shaders/trail';
 import { TERRAIN } from './world';
 
 /**
@@ -49,6 +51,15 @@ const DUST_RADIUS = 16;
 /** The filament texture covers this many world units around the lit patch. */
 const RIDGE_SPAN = 24;
 const RIDGE_SIZE = 512;
+/**
+ * The pointer trail lives in one fixed world rectangle over the whole flight, at about a tenth
+ * of a unit per texel, so a mark stays where it was drawn while the camera moves on.
+ */
+const TRAIL_RECT = { x: -12, z: -80, width: 24, depth: 96 } as const;
+const TRAIL_TEXELS_PER_UNIT = 10.5;
+/** Share of the mark kept per frame at sixty frames a second, about a three second fade. */
+const TRAIL_DECAY = 0.985;
+const TRAIL_RADIUS = 0.42;
 /** The terrain patch steps with the camera by whole grid cells, so its vertices never swim. */
 const CELL = TERRAIN.size / TERRAIN.segments;
 
@@ -114,6 +125,9 @@ export class Valley {
   private readonly ridgeCamera = new OrthographicCamera(-1, 1, 1, -1, 0, 1);
   private readonly ridgeRect = new Vector3();
   private readonly materials: RawShaderMaterial[] = [];
+  private readonly trail: PingPong;
+  private readonly segment = new Vector4();
+  private readonly stamp = new Vector2();
 
   constructor(screen: BufferGeometry) {
     this.uniforms = {
@@ -135,12 +149,35 @@ export class Valley {
     this.ridges = createHalfFloatTarget(RIDGE_SIZE, RIDGE_SIZE);
     this.ridgeScene.add(createScreenPass(screen, ridgeFragment, { ...shared, uRect: { value: this.ridgeRect } }));
 
+    const trailSize = new Vector2(
+      Math.round(TRAIL_RECT.width * TRAIL_TEXELS_PER_UNIT),
+      Math.round(TRAIL_RECT.depth * TRAIL_TEXELS_PER_UNIT),
+    );
+    const trailRect = new Vector4(TRAIL_RECT.x, TRAIL_RECT.z, TRAIL_RECT.width, TRAIL_RECT.depth);
+    this.trail = new PingPong(
+      trailSize.x,
+      trailSize.y,
+      screen,
+      trailFragment,
+      {
+        uTrail: { value: null },
+        uTexel: { value: new Vector2(1 / trailSize.x, 1 / trailSize.y) },
+        uRect: { value: trailRect },
+        uSegment: { value: this.segment },
+        uStamp: { value: this.stamp },
+        uDecay: { value: TRAIL_DECAY },
+      },
+      'uTrail',
+    );
+
     const plane = new PlaneGeometry(TERRAIN.size, TERRAIN.size, TERRAIN.segments, TERRAIN.segments);
     plane.rotateX(-Math.PI / 2);
     const terrainMaterial = material(terrainVertex, terrainFragment, {
       ...shared,
       uRidges: { value: this.ridges.texture },
       uRidgeRect: { value: this.ridgeRect },
+      uTrail: { value: this.trail.texture },
+      uTrailRect: { value: trailRect },
     });
     this.terrain = new Mesh(plane, terrainMaterial);
 
@@ -159,17 +196,29 @@ export class Valley {
     this.group.add(this.terrain, dots, dust);
   }
 
-  /** Moves the patch and the filament texture with the camera, then bakes the filaments. */
+  /**
+   * Draws the pointer's segment for this frame into the trail, from where it was to where it
+   * is, in world x and z. A null segment lets the trail fade with nothing new stamped.
+   */
+  mark(segment: readonly [x0: number, z0: number, x1: number, z1: number] | null): void {
+    if (segment) this.segment.set(...segment);
+    this.stamp.set(TRAIL_RADIUS, segment ? 1 : 0);
+  }
+
+  /** Moves the patch and the filament texture with the camera, bakes them and advances the trail. */
   update(renderer: WebGLRenderer, cameraZ: number): void {
     this.terrain.position.z = Math.round(cameraZ / CELL) * CELL - TERRAIN.size * 0.3;
     const focus = this.uniforms.uFocus.value;
     this.ridgeRect.set(focus.x - RIDGE_SPAN / 2, focus.y - RIDGE_SPAN / 2, RIDGE_SPAN);
     renderer.setRenderTarget(this.ridges);
     renderer.render(this.ridgeScene, this.ridgeCamera);
+    this.trail.step(renderer);
+    this.terrain.material.uniforms.uTrail!.value = this.trail.texture;
   }
 
   dispose(): void {
     this.ridges.dispose();
+    this.trail.dispose();
     this.group.traverse((o) => (o as Mesh).geometry?.dispose());
     for (const m of this.materials) m.dispose();
     this.ridgeScene.traverse((o) => ((o as Mesh).material as RawShaderMaterial | undefined)?.dispose());
