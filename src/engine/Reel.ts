@@ -16,19 +16,12 @@ import {
 } from 'three';
 import { ATLAS } from '@/data/atlas';
 import { damp, smoothstep } from '@/lib/math';
+import { REEL, reelSlot } from './reelLayout';
 import { reelFragment, reelVertex } from './shaders/reel';
 
 /** Poster height on the reel, and the strip width that holds a 2:3 poster between its rebates. */
 const FRAME_HEIGHT = 0.62;
 const FRAME_WIDTH = (FRAME_HEIGHT * (2 / 3)) / (1 - 2 * 0.16);
-/** The reel winds just inside the tunnel's dots, nine frames to a turn. */
-const RADIUS = 1.72;
-const PER_TURN = 9;
-/** Distance along the flight between neighbouring frames, and where the nearest one sits. */
-const SPACING = 0.55;
-const NEAREST = 1.4;
-/** Frames a second the reel runs toward the camera, so every film passes in a little over three minutes. */
-const SPEED = 0.35;
 /** How far each frame leans its face back toward the camera, so the ones overhead still read. */
 const LEAN = 0.76;
 
@@ -101,23 +94,17 @@ export class Reel {
       this.hovered = null;
       return null;
     }
-    const flow = still ? 0 : time * SPEED;
+    const flow = still ? 0 : time * REEL.speed;
     const origin = camera.position;
     for (let k = 0; k < this.count; k++) {
-      const s = (((k - flow) % this.count) + this.count) % this.count;
-      const angle = (2 * Math.PI * s) / PER_TURN;
-      this.at.set(
-        origin.x + Math.cos(angle) * RADIUS,
-        origin.y + Math.sin(angle) * RADIUS,
-        origin.z - NEAREST - s * SPACING,
-      );
+      const { angle, x, y, z, fade } = reelSlot(k, flow, this.count);
+      this.at.set(origin.x + x, origin.y + y, origin.z + z);
       this.face.set(-Math.cos(angle) * (1 - LEAN), -Math.sin(angle) * (1 - LEAN), LEAN).normalize();
       // Matrix4.lookAt points −z from eye to target, so the target sits behind the face for +z to face out.
       this.matrix.lookAt(this.at, this.target.copy(this.at).sub(this.face), this.up);
       this.matrix.setPosition(this.at);
       this.mesh.setMatrixAt(k, this.matrix);
-      // Frames fade in as they leave the far dark and out as they slip past the camera.
-      this.fades.setX(k, show * smoothstep(0, 1.2, s) * (1 - smoothstep(this.count * 0.55, this.count * 0.8, s)));
+      this.fades.setX(k, show * fade);
       const lit = this.frames.getY(k);
       this.frames.setY(k, damp(lit, k === this.hovered ? 1 : 0, 9, dt));
     }

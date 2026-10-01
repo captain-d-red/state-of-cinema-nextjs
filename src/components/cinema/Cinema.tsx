@@ -11,6 +11,7 @@ import { clamp } from '@/lib/math';
 import { Sound } from '@/lib/sound';
 import styles from './Cinema.module.css';
 import { Hud } from './Hud';
+import { Logotype } from './Logotype';
 import { TrailerDialog } from './TrailerDialog';
 
 type Status = 'starting' | 'running' | 'unsupported';
@@ -31,6 +32,8 @@ export function Cinema() {
   const lenisRef = useRef<Lenis | null>(null);
   const [station, setStation] = useState(0);
   const [status, setStatus] = useState<Status>('starting');
+  const [started, setStarted] = useState(false);
+  const countRef = useRef<HTMLSpanElement>(null);
   const [playing, setPlaying] = useState<Film | null>(null);
   const [soundOn, setSoundOn] = useState(false);
   const soundRef = useRef<Sound | null>(null);
@@ -46,6 +49,7 @@ export function Cinema() {
     let raf = 0;
     let shown = -1;
     let hovered: number | null = null;
+    let began = false;
 
     jumpRef.current = (target) => {
       const i = clamp(Math.round(target), 0, COUNT - 1);
@@ -105,6 +109,13 @@ export function Cinema() {
       });
       pointer.clicks = 0;
       hovered = frame.hoveredFilm;
+      if (!began) {
+        if (countRef.current) countRef.current.textContent = String(Math.round(frame.loaded * 100));
+        if (frame.started) {
+          began = true;
+          setStarted(true);
+        }
+      }
       soundRef.current?.update(frame);
       canvas.style.cursor = hovered !== null ? 'pointer' : '';
       if (frame.station !== shown) {
@@ -191,15 +202,23 @@ export function Cinema() {
     <div className={styles.root} data-status={status}>
       <div className={styles.stage}>
         <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" />
-        <Hud
-          story={story}
-          index={station}
-          topPick={topPick}
-          soundOn={soundOn}
-          onToggleSound={toggleSound}
-          onPlay={setPlaying}
-          onJump={(i) => jumpRef.current(i)}
-        />
+        {started && (
+          <Hud
+            story={story}
+            index={station}
+            topPick={topPick}
+            soundOn={soundOn}
+            onToggleSound={toggleSound}
+            onPlay={setPlaying}
+            onJump={(i) => jumpRef.current(i)}
+          />
+        )}
+        <div className={styles.loader} data-done={started || status === 'unsupported'} aria-hidden={started}>
+          <Logotype className={styles.loaderMark} />
+          <p className={styles.loaderCount} role="status">
+            <span ref={countRef}>0</span>%
+          </p>
+        </div>
       </div>
       {status === 'unsupported' && (
         <p className={styles.unsupported} role="status">

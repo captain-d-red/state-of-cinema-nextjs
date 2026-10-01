@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { formatOklch, hexToLinear, linearSrgbToOklab, linearToHex, oklabToOklch, oklchToLinearSrgb } from './color';
+import {
+  formatOklch,
+  hexToLinear,
+  linearSrgbToOklab,
+  linearToHex,
+  mixOklch,
+  oklabToOklch,
+  oklchToLinearSrgb,
+} from './color';
 
 describe('color', () => {
   it('round-trips hex through linear light', () => {
@@ -33,5 +41,16 @@ describe('color', () => {
 
   it('formats colours the way a colourist reads them', () => {
     expect(formatOklch({ L: 0.624, C: 0.1412, h: Math.PI / 2 })).toBe('oklch(62% 0.14 90°)');
+  });
+
+  it('blends through OKLCh, landing on the ends and keeping chroma between them', () => {
+    const teal = linearSrgbToOklab(hexToLinear('#2f9a98'));
+    const orange = linearSrgbToOklab(hexToLinear('#ff6a3d'));
+    expect(linearToHex(mixOklch(teal, orange, 0))).toBe('#2f9a98');
+    expect(linearToHex(mixOklch(teal, orange, 1))).toBe('#ff6a3d');
+    const ends = Math.min(oklabToOklch(teal).C, oklabToOklch(orange).C);
+    for (const k of [0.25, 0.5, 0.75]) {
+      expect(oklabToOklch(linearSrgbToOklab(mixOklch(teal, orange, k))).C).toBeGreaterThan(ends * 0.9);
+    }
   });
 });

@@ -19,7 +19,7 @@ import {
 import { ATLAS } from '@/data/atlas';
 import type { Catalogue } from '@/data/catalogue';
 import type { Station } from '@/data/story';
-import { hexToLinear, linearSrgbToOklab, oklabToLinearSrgb, type Vec3 } from '@/lib/color';
+import { hexToLinear, linearSrgbToOklab, mixOklch, type Vec3 } from '@/lib/color';
 import { clamp, damp, lerp, smoothstep } from '@/lib/math';
 import { GlassWall } from './GlassWall';
 import { createFullscreenGeometry, createHalfFloatTarget, createScreenPass } from './gl';
@@ -60,12 +60,18 @@ export interface EngineFrame {
   /** Camera speed in world units a second, and how far the tunnel has formed. */
   readonly speed: number;
   readonly tunnel: number;
+  /** Share of the images that have arrived, the atlas and every pick poster, zero to one. */
+  readonly loaded: number;
+  /** Whether the intro has begun, the moment the loader should step aside. */
+  readonly started: boolean;
 }
 
 /** Keeps the drawing buffer near 4K worth of pixels however dense the display is. */
 const PIXEL_BUDGET = 9_000_000;
 /** Seconds the scene takes to grow out of the dark on load. */
 const INTRO_SECONDS = 3.5;
+/** Seconds to wait for the images before starting the intro without them. */
+const LOAD_PATIENCE = 8;
 const BACKGROUND = '#08090d';
 /**
  * A fast flick kicks the lens: the camera rolls and the field of view widens, in proportion
@@ -94,7 +100,7 @@ export class Engine {
   /** The raw pointer for picking, in normalised device coordinates with presence in z. */
   private readonly pick = new Vector3();
   private readonly story: readonly Station[];
-  /** Station tints in OKLab, so a blend between two keeps its chroma instead of greying out. */
+  /** Station tints in OKLab, blended through OKLCh so the valley stays saturated between stations. */
   private readonly tints: Vec3[];
   private readonly atlas: IUniform<Texture | null> = { value: null };
   private readonly abort = new AbortController();
@@ -107,6 +113,7 @@ export class Engine {
   private readonly tint = new Vector3();
 
   private aspect = 1;
+  private firstTime: number | null = null;
   private startTime: number | null = null;
   private lastTime = 0;
   private lastCameraZ: number | null = null;
@@ -236,10 +243,16 @@ export class Engine {
 
   frame(timeMs: number, input: EngineInput): EngineFrame {
     const time = timeMs / 1000;
-    this.startTime ??= time;
+    this.firstTime ??= time;
     const dt = clamp(time - (this.lastTime || time), 1 / 240, 1 / 20);
     this.lastTime = time;
-    const age = time - this.startTime;
+    // The intro waits for the images, so it plays out in front of the visitor instead of under
+    // the loader. A missing image must never strand anyone, so it starts anyway after a while.
+    const images = 1 + this.walls.length;
+    const arrived = (this.atlas.value ? 1 : 0) + this.walls.filter((w) => w.ready).length;
+    const loaded = arrived / images;
+    if (this.startTime === null && (loaded >= 1 || time - this.firstTime > LOAD_PATIENCE)) this.startTime = time;
+    const age = this.startTime === null ? 0 : time - this.startTime;
     const linear = this.reducedMotion ? 1 : clamp(age / INTRO_SECONDS, 0, 1);
     const intro = 1 - (1 - linear) ** 3;
 
@@ -258,11 +271,7 @@ export class Engine {
     u.uIntro.value = intro;
     u.uCamPos.value.copy(this.camera.position);
     u.uFocus.value.set(0, z - CAMERA.lookAhead + 0.4);
-    const a = this.tints[from]!;
-    const b = this.tints[to]!;
-    const k = smoothstep(0, 1, t);
-    const [r, g, bl] = oklabToLinearSrgb([lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)]);
-    this.tint.set(Math.max(r, 0), Math.max(g, 0), Math.max(bl, 0));
+    this.tint.set(...mixOklch(this.tints[from]!, this.tints[to]!, smoothstep(0, 1, t)));
     this.applyTint(this.tint);
     u.uTunnel.value = tunnel;
     this.valley.update(this.renderer, z);
@@ -276,7 +285,15 @@ export class Engine {
     this.postPass.uTime!.value = time;
     this.postPass.uFade!.value = this.reducedMotion ? 1 : smoothstep(0, 0.8, age);
     this.render();
-    return { position, station: Math.round(position), hoveredFilm, speed: this.speed, tunnel };
+    return {
+      position,
+      station: Math.round(position),
+      hoveredFilm,
+      speed: this.speed,
+      tunnel,
+      loaded,
+      started: this.startTime !== null,
+    };
   }
 
   /**

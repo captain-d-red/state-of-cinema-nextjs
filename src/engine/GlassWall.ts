@@ -134,6 +134,11 @@ export class GlassWall {
       });
   }
 
+  /** Whether the poster has arrived, for the loading readout. */
+  get ready(): boolean {
+    return this.poster !== null;
+  }
+
   /**
    * Places every tile for this frame. Arrival runs from zero, far ahead, to one when the
    * camera frames the wall, and on to two once it has passed, so one number drives both the

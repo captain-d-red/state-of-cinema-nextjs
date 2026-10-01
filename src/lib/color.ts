@@ -103,3 +103,18 @@ export function hexToLinear(hex: string): Vec3 {
 export function formatOklch({ L, C, h }: Oklch): string {
   return `oklch(${Math.round(L * 100)}% ${C.toFixed(2)} ${Math.round((h * 180) / Math.PI)}°)`;
 }
+
+/**
+ * Blends two colours given in OKLab through OKLCh and returns linear sRGB. Lightness and chroma
+ * blend linearly and hue takes the shorter way round the wheel, so a blend between two
+ * saturated colours of very different hue stays saturated. A straight line in OKLab or in
+ * linear RGB between near-opposite hues, such as teal and orange, passes close to grey.
+ */
+export function mixOklch(a: Vec3, b: Vec3, t: number): Vec3 {
+  const p = oklabToOklch(a);
+  const q = oklabToOklch(b);
+  let dh = q.h - p.h;
+  if (dh > Math.PI) dh -= 2 * Math.PI;
+  if (dh < -Math.PI) dh += 2 * Math.PI;
+  return oklchToLinearSrgb({ L: p.L + (q.L - p.L) * t, C: p.C + (q.C - p.C) * t, h: p.h + dh * t });
+}
