@@ -55,7 +55,8 @@ function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | 
         <div className={styles.stat} key={station.label}>
           <h2 className={styles.statLabel}>
             <Letters text={station.label} />
-            <sup className={styles.sup}>({station.value})</sup>
+            {/* The figure in the scene already shows the number, so only assistive technology reads it here. */}
+            <span className="sr-only">: {station.value}</span>
           </h2>
           <p className={styles.footnote}>{station.detail}</p>
         </div>

@@ -227,14 +227,6 @@
   letter-spacing: -0.03em;
 }
 
-.sup {
-  vertical-align: top;
-  margin-left: 0.15em;
-  font-size: 0.28em;
-  letter-spacing: 0;
-  animation: fade 600ms 300ms ease both;
-}
-
 .footnote {
   position: absolute;
   left: 50%;
