@@ -22,6 +22,11 @@ import { reelFragment, reelVertex } from './shaders/reel';
 /** Poster height on the reel, and the strip width that holds a 2:3 poster between its rebates. */
 const FRAME_HEIGHT = 0.62;
 const FRAME_WIDTH = (FRAME_HEIGHT * (2 / 3)) / (1 - 2 * 0.16);
+/**
+ * Heights on screen, in normalised device coordinates, past which a frame has faded out. The
+ * foot keeps a wider band, because the footnote and the station ticks sit higher than the header.
+ */
+const HUD_CLEAR = { top: 0.84, bottom: 0.68 } as const;
 /** How far each frame leans its face back toward the camera, so the ones overhead still read. */
 const LEAN = 0.76;
 
@@ -44,6 +49,7 @@ export class Reel {
   private readonly face = new Vector3();
   private readonly target = new Vector3();
   private readonly up = new Vector3(0, 1, 0);
+  private readonly probe = new Vector3();
   private readonly raycaster = new Raycaster();
   private hovered: number | null = null;
 
@@ -104,7 +110,11 @@ export class Reel {
       this.matrix.lookAt(this.at, this.target.copy(this.at).sub(this.face), this.up);
       this.matrix.setPosition(this.at);
       this.mesh.setMatrixAt(k, this.matrix);
-      this.fades.setX(k, show * fade);
+      // Frames give way as they near the top and bottom of the screen, so the reel never runs
+      // under the interface's header and footer.
+      const screenY = this.probe.copy(this.at).project(camera).y;
+      const limit = screenY > 0 ? HUD_CLEAR.top : HUD_CLEAR.bottom;
+      this.fades.setX(k, show * fade * (1 - smoothstep(limit - 0.18, limit, Math.abs(screenY))));
       const lit = this.frames.getY(k);
       this.frames.setY(k, damp(lit, k === this.hovered ? 1 : 0, 9, dt));
     }

@@ -78,7 +78,7 @@ export class Sound {
     }
     const rush = Math.min(speed / 6, 1);
     this.air.frequency.setTargetAtTime(380 + rush * 1500 + tunnel * 600, now, GLIDE);
-    this.airGain.gain.setTargetAtTime(0.012 + rush * 0.09 + tunnel * 0.03, now, GLIDE);
+    this.airGain.gain.setTargetAtTime(0.012 + rush * 0.17 + tunnel * 0.03, now, GLIDE);
     this.droneFilter.Q.setTargetAtTime(0.7 + tunnel * 5, now, GLIDE);
   }
 

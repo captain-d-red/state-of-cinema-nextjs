@@ -2,7 +2,6 @@ import {
   Color,
   LinearSRGBColorSpace,
   NoToneMapping,
-  OrthographicCamera,
   PerspectiveCamera,
   Plane,
   Raycaster,
@@ -14,7 +13,6 @@ import {
   WebGLRenderer,
   type BufferGeometry,
   type IUniform,
-  type WebGLRenderTarget,
 } from 'three';
 import { ATLAS } from '@/data/atlas';
 import type { Catalogue } from '@/data/catalogue';
@@ -22,12 +20,12 @@ import type { Station } from '@/data/story';
 import { hexToLinear, linearSrgbToOklab, mixOklch, type Vec3 } from '@/lib/color';
 import { clamp, damp, lerp, smoothstep } from '@/lib/math';
 import { GlassWall } from './GlassWall';
-import { createFullscreenGeometry, createHalfFloatTarget, createScreenPass } from './gl';
+import { createFullscreenGeometry } from './gl';
+import { Lens } from './Lens';
 import { Numbers } from './Numbers';
 import { Reel } from './Reel';
 import { between, dwell } from './scroll';
 import { RING_SLOTS } from './shaders/field';
-import { bloomExtractFragment, blurFragment, postFragment } from './shaders/post';
 import { Valley } from './Valley';
 import { CAMERA, cameraZ, stationZ } from './world';
 
@@ -82,15 +80,9 @@ const KICK = { roll: 0.12, fov: 24, gain: 0.18 } as const;
 export class Engine {
   private readonly renderer: WebGLRenderer;
   private readonly camera = new PerspectiveCamera(CAMERA.fov, 1, 0.1, 80);
-  private readonly screenCamera = new OrthographicCamera(-1, 1, 1, -1, 0, 1);
   private readonly scene = new Scene();
-  private readonly postScene = new Scene();
-  private readonly bloomScenes = { extract: new Scene(), blurX: new Scene(), blurY: new Scene() };
   private readonly screen: BufferGeometry;
-  private readonly sceneTarget: WebGLRenderTarget;
-  private readonly bloomTargets: readonly [WebGLRenderTarget, WebGLRenderTarget];
-  private readonly blur: { x: Record<string, IUniform>; y: Record<string, IUniform> };
-  private readonly postPass: Record<string, IUniform>;
+  private readonly lens: Lens;
   private readonly valley: Valley;
   private readonly numbers: Numbers;
   private readonly walls: GlassWall[];
@@ -143,33 +135,7 @@ export class Engine {
     this.renderer.setClearColor(new Color(...background), 1);
 
     this.screen = createFullscreenGeometry();
-    this.sceneTarget = createHalfFloatTarget(1, 1, { depthBuffer: true, samples: 4 });
-    this.bloomTargets = [createHalfFloatTarget(1, 1), createHalfFloatTarget(1, 1)];
-    this.blur = {
-      x: { uSource: { value: this.bloomTargets[0].texture }, uStep: { value: new Vector2() } },
-      y: { uSource: { value: this.bloomTargets[1].texture }, uStep: { value: new Vector2() } },
-    };
-    this.bloomScenes.extract.add(
-      createScreenPass(this.screen, bloomExtractFragment, {
-        uSource: { value: this.sceneTarget.texture },
-        uKnee: { value: 0.55 },
-      }),
-    );
-    this.bloomScenes.blurX.add(createScreenPass(this.screen, blurFragment, this.blur.x));
-    this.bloomScenes.blurY.add(createScreenPass(this.screen, blurFragment, this.blur.y));
-    this.postPass = {
-      uScene: { value: this.sceneTarget.texture },
-      uBloom: { value: this.bloomTargets[0].texture },
-      uResolution: { value: new Vector2(1, 1) },
-      uTime: { value: 0 },
-      uExposure: { value: 1 },
-      uHalation: { value: 0.4 },
-      uGrain: { value: 0.03 },
-      uFade: { value: 0 },
-      uAberration: { value: 0.0055 },
-      uBarrel: { value: -0.5 },
-    };
-    this.postScene.add(createScreenPass(this.screen, postFragment, this.postPass));
+    this.lens = new Lens(this.screen);
 
     this.valley = new Valley(this.screen);
     this.valley.uniforms.uBackground.value.set(...background);
@@ -227,15 +193,7 @@ export class Engine {
     while (dpr > 1 && w0 * h0 * dpr * dpr > PIXEL_BUDGET) dpr -= 0.125;
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w0, h0, false);
-    const w = Math.round(w0 * dpr);
-    const h = Math.round(h0 * dpr);
-    this.sceneTarget.setSize(w, h);
-    const bw = Math.ceil(w / 4);
-    const bh = Math.ceil(h / 4);
-    for (const target of this.bloomTargets) target.setSize(bw, bh);
-    (this.blur.x.uStep!.value as Vector2).set(1.5 / bw, 0);
-    (this.blur.y.uStep!.value as Vector2).set(0, 1.5 / bh);
-    (this.postPass.uResolution!.value as Vector2).set(w, h);
+    this.lens.resize(Math.round(w0 * dpr), Math.round(h0 * dpr));
     // Dots are sized in drawing-buffer pixels with a gentle lift on dense screens, so they stay
     // fine specks on a Retina display instead of doubling into beads.
     this.valley.uniforms.uPointScale.value = Math.sqrt(dpr);
@@ -283,9 +241,7 @@ export class Engine {
     this.pick.set(input.pointerX, input.pointerY, input.pointerActive ? 1 : 0);
     const hoveredFilm = this.reel.update(time, this.camera, this.pick, tunnel, dt, this.reducedMotion);
 
-    this.postPass.uTime!.value = time;
-    this.postPass.uFade!.value = this.reducedMotion ? 1 : smoothstep(0, 0.8, age);
-    this.render();
+    this.lens.render(this.renderer, this.scene, this.camera, time, this.reducedMotion ? 1 : smoothstep(0, 0.8, age));
     return {
       position,
       station: Math.round(position),
@@ -362,21 +318,6 @@ export class Engine {
     }
   }
 
-  private render(): void {
-    const r = this.renderer;
-    r.setRenderTarget(this.sceneTarget);
-    r.render(this.scene, this.camera);
-    const [bloomA, bloomB] = this.bloomTargets;
-    r.setRenderTarget(bloomA);
-    r.render(this.bloomScenes.extract, this.screenCamera);
-    r.setRenderTarget(bloomB);
-    r.render(this.bloomScenes.blurX, this.screenCamera);
-    r.setRenderTarget(bloomA);
-    r.render(this.bloomScenes.blurY, this.screenCamera);
-    r.setRenderTarget(null);
-    r.render(this.postScene, this.screenCamera);
-  }
-
   dispose(): void {
     this.abort.abort();
     this.atlas.value?.dispose();
@@ -384,12 +325,8 @@ export class Engine {
     this.numbers.dispose();
     for (const wall of this.walls) wall.dispose();
     this.reel.dispose();
-    this.sceneTarget.dispose();
-    for (const target of this.bloomTargets) target.dispose();
+    this.lens.dispose();
     this.screen.dispose();
-    for (const scene of [this.postScene, ...Object.values(this.bloomScenes)]) {
-      scene.traverse((o) => (o as { material?: { dispose(): void } }).material?.dispose());
-    }
     this.renderer.dispose();
   }
 }
