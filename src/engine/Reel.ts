@@ -8,8 +8,7 @@ import {
   PlaneGeometry,
   RawShaderMaterial,
   Raycaster,
-  SRGBColorSpace,
-  Texture,
+  type Texture,
   Vector2,
   Vector3,
   type Camera,
@@ -53,14 +52,12 @@ export class Reel {
   private readonly target = new Vector3();
   private readonly up = new Vector3(0, 1, 0);
   private readonly raycaster = new Raycaster();
-  private readonly abort = new AbortController();
-  private atlas: Texture | null = null;
   private hovered: number | null = null;
 
   constructor(
     private readonly count: number,
     glow: IUniform<Vector3>,
-    onError: (error: unknown) => void,
+    private readonly atlas: IUniform<Texture | null>,
   ) {
     const geometry = new PlaneGeometry(FRAME_WIDTH, FRAME_HEIGHT);
     const frames = new Float32Array(count * 2);
@@ -70,8 +67,8 @@ export class Reel {
     geometry.setAttribute('aFrame', this.frames);
     geometry.setAttribute('aFade', this.fades);
     const uniforms = {
-      uAtlas: { value: null as Texture | null },
-      uAtlasCells: { value: new Vector2(ATLAS.columns, Math.ceil(count / ATLAS.columns)) },
+      uAtlas: atlas,
+      uAtlasCells: { value: new Vector2(ATLAS.columns, ATLAS.rows) },
       uGlow: glow,
     };
     this.mesh = new InstancedMesh(
@@ -91,24 +88,6 @@ export class Reel {
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 60;
     this.mesh.visible = false;
-
-    fetch(ATLAS.src, { signal: this.abort.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error(`${ATLAS.src} failed with ${response.status}`);
-        return response.blob();
-      })
-      .then((blob) => createImageBitmap(blob, { imageOrientation: 'flipY' }))
-      .then((bitmap) => {
-        const texture = new Texture(bitmap);
-        texture.flipY = false;
-        texture.colorSpace = SRGBColorSpace;
-        texture.needsUpdate = true;
-        this.atlas = texture;
-        uniforms.uAtlas.value = texture;
-      })
-      .catch((error: unknown) => {
-        if (!this.abort.signal.aborted) onError(error);
-      });
   }
 
   /**
@@ -117,7 +96,7 @@ export class Reel {
    */
   update(time: number, camera: Camera, pointer: Vector3, tunnel: number, dt: number, still: boolean): number | null {
     const show = smoothstep(0.75, 1, tunnel);
-    this.mesh.visible = show > 0.001 && this.atlas !== null;
+    this.mesh.visible = show > 0.001 && this.atlas.value !== null;
     if (!this.mesh.visible) {
       this.hovered = null;
       return null;
@@ -158,8 +137,6 @@ export class Reel {
   }
 
   dispose(): void {
-    this.abort.abort();
-    this.atlas?.dispose();
     this.mesh.geometry.dispose();
     this.mesh.material.dispose();
   }

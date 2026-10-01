@@ -9,6 +9,8 @@ import { look } from './terrain';
  *   scattered under the ground ──ease out, staggered──► formed into the glyph
  *        y = ground − depth                                y = station height
  *
+ * Every particle is a tiny print of one of the films the figure counts.
+ *
  * The pointer pushes particles aside in screen space: outward on a bell that peaks one radius
  * from the cursor, with a little swirl, so the figure parts like grain rather than a crater.
  */
@@ -24,9 +26,9 @@ uniform float uPointScale;
 /** Pointer in normalised device coordinates, and how present it is. */
 uniform vec3 uCursor;
 in vec3 position;
-in vec3 aColour;
+in float aPoster;
 in float aSeed;
-out vec3 vColour;
+out float vPoster;
 out float vAlpha;
 out float vLift;
 
@@ -57,28 +59,38 @@ void main() {
   clip.xy += (dir + vec2(-dir.y, dir.x) * 0.35) * bell * 0.025 * uCursor.z * clip.w;
   gl_Position = clip;
 
-  gl_PointSize = 2.3 * uPointScale * clamp(8.0 / max(-view.z, 0.5), 0.4, 1.6) * (1.0 + fall * 1.8);
-  vColour = aColour;
+  gl_PointSize = 9.0 * uPointScale * clamp(8.0 / max(-view.z, 0.5), 0.4, 1.6) * (1.0 + fall * 0.9);
+  vPoster = aPoster;
   vAlpha = smoothstep(0.35, 1.0, own) * uVisible;
   vLift = fall;
 }
 `;
 
+/**
+ * A tiny print of one poster. The point sprite is square and the poster two by three, so the
+ * print fills the middle two thirds across and the full height, with a hairline of the
+ * valley's light around it.
+ */
 export const numbersFragment = glsl`${header}
-in vec3 vColour;
+uniform sampler2D uAtlas;
+uniform vec2 uAtlasCells;
+uniform vec3 uGlow;
+in float vPoster;
 in float vAlpha;
 in float vLift;
 out vec4 fragColor;
+
 void main() {
-  vec2 c = vec2(gl_PointCoord.x - 0.5, 0.5 - gl_PointCoord.y) * 2.0;
-  float r2 = dot(c, c);
-  if (r2 > 1.0) discard;
-  vec3 n = vec3(c, sqrt(1.0 - r2));
-  vec3 l = normalize(vec3(0.4, 0.8, 0.6));
-  float shade = 0.6 + 0.85 * max(dot(n, l), 0.0);
-  float gloss = 0.4 * pow(max(dot(n, normalize(l + vec3(0.0, 0.0, 1.0))), 0.0), 16.0);
-  // A particle under the pointer brightens toward white, the way grain catches a lamp.
-  vec3 colour = mix(vColour * shade + gloss, vec3(1.0), clamp(vLift * 1.4, 0.0, 1.0));
-  fragColor = vec4(colour, vAlpha * (1.0 - smoothstep(0.55, 1.0, r2)));
+  vec2 p = vec2(gl_PointCoord.x, 1.0 - gl_PointCoord.y);
+  float x = (p.x - 1.0 / 6.0) * 1.5;
+  if (x < 0.0 || x > 1.0) discard;
+  vec2 cell = vec2(mod(vPoster, uAtlasCells.x), floor(vPoster / uAtlasCells.x));
+  vec2 uv = (cell + vec2(x, 1.0 - p.y)) / uAtlasCells;
+  vec3 poster = texture(uAtlas, vec2(uv.x, 1.0 - uv.y)).rgb;
+  float edge = min(min(x, 1.0 - x), min(p.y, 1.0 - p.y));
+  vec3 colour = mix(poster * 1.15, uGlow, (1.0 - smoothstep(0.0, 0.08, edge)) * 0.6);
+  // A print under the pointer brightens toward white, the way a frame catches the lamp.
+  colour = mix(colour, vec3(1.0), clamp(vLift * 0.8, 0.0, 0.6));
+  fragColor = vec4(colour, vAlpha);
 }
 `;

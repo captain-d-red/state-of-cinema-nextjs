@@ -6,7 +6,9 @@ import {
   PerspectiveCamera,
   Plane,
   Raycaster,
+  SRGBColorSpace,
   Scene,
+  Texture,
   Vector2,
   Vector3,
   WebGLRenderer,
@@ -14,9 +16,10 @@ import {
   type IUniform,
   type WebGLRenderTarget,
 } from 'three';
+import { ATLAS } from '@/data/atlas';
 import type { Catalogue } from '@/data/catalogue';
 import type { Station } from '@/data/story';
-import { hexToLinear } from '@/lib/color';
+import { hexToLinear, linearSrgbToOklab, oklabToLinearSrgb, type Vec3 } from '@/lib/color';
 import { clamp, damp, lerp, smoothstep } from '@/lib/math';
 import { GlassWall } from './GlassWall';
 import { createFullscreenGeometry, createHalfFloatTarget, createScreenPass } from './gl';
@@ -91,7 +94,10 @@ export class Engine {
   /** The raw pointer for picking, in normalised device coordinates with presence in z. */
   private readonly pick = new Vector3();
   private readonly story: readonly Station[];
-  private readonly tints: Vector3[];
+  /** Station tints in OKLab, so a blend between two keeps its chroma instead of greying out. */
+  private readonly tints: Vec3[];
+  private readonly atlas: IUniform<Texture | null> = { value: null };
+  private readonly abort = new AbortController();
   private readonly reducedMotion: boolean;
   private readonly raycaster = new Raycaster();
   private readonly ground = new Plane(new Vector3(0, 1, 0), 0);
@@ -114,7 +120,7 @@ export class Engine {
   constructor({ canvas, catalogue, story, fontFamily, reducedMotion, onError }: EngineOptions) {
     this.story = story;
     this.reducedMotion = reducedMotion;
-    this.tints = story.map((s) => new Vector3(...hexToLinear(s.tint)));
+    this.tints = story.map((s) => linearSrgbToOklab(hexToLinear(s.tint)));
     this.renderer = new WebGLRenderer({
       canvas,
       antialias: false,
@@ -161,15 +167,16 @@ export class Engine {
     this.valley.uniforms.uBackground.value.set(...background);
     this.scene.add(this.valley.group);
 
-    const bySlug = new Map(catalogue.films.map((f) => [f.slug, f]));
+    const indexOf = new Map(catalogue.films.map((f, i) => [f.slug, i]));
     this.numbers = new Numbers(
       story.flatMap((s, i) =>
         s.kind === 'stat'
-          ? [{ value: s.value, z: stationZ(i), tint: s.tint, films: s.films.flatMap((slug) => bySlug.get(slug) ?? []) }]
+          ? [{ value: s.value, z: stationZ(i), posters: s.films.flatMap((slug) => indexOf.get(slug) ?? []) }]
           : [],
       ),
       this.valley.uniforms,
       this.cursor,
+      this.atlas,
       fontFamily,
     );
     this.scene.add(this.numbers.group);
@@ -177,8 +184,30 @@ export class Engine {
       s.kind === 'pick' ? [new GlassWall(s.film, stationZ(i), this.valley.uniforms.uCamPos, onError)] : [],
     );
     for (const wall of this.walls) this.scene.add(wall.group);
-    this.reel = new Reel(catalogue.films.length, this.valley.uniforms.uGlow, onError);
+    this.reel = new Reel(catalogue.films.length, this.valley.uniforms.uGlow, this.atlas);
     this.scene.add(this.reel.mesh);
+    this.loadAtlas(onError);
+  }
+
+  /** Every poster as one cell of a single texture, shared by the figures and the reel. */
+  private loadAtlas(onError: (error: unknown) => void): void {
+    fetch(ATLAS.src, { signal: this.abort.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`${ATLAS.src} failed with ${response.status}`);
+        return response.blob();
+      })
+      .then((blob) => createImageBitmap(blob, { imageOrientation: 'flipY' }))
+      .then((bitmap) => {
+        const texture = new Texture(bitmap);
+        texture.flipY = false;
+        texture.colorSpace = SRGBColorSpace;
+        texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+        texture.needsUpdate = true;
+        this.atlas.value = texture;
+      })
+      .catch((error: unknown) => {
+        if (!this.abort.signal.aborted) onError(error);
+      });
   }
 
   /** Sizes the drawing buffer to the canvas, trading pixel ratio for a fixed pixel budget. */
@@ -229,7 +258,11 @@ export class Engine {
     u.uIntro.value = intro;
     u.uCamPos.value.copy(this.camera.position);
     u.uFocus.value.set(0, z - CAMERA.lookAhead + 0.4);
-    this.tint.copy(this.tints[from]!).lerp(this.tints[to]!, smoothstep(0, 1, t));
+    const a = this.tints[from]!;
+    const b = this.tints[to]!;
+    const k = smoothstep(0, 1, t);
+    const [r, g, bl] = oklabToLinearSrgb([lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)]);
+    this.tint.set(Math.max(r, 0), Math.max(g, 0), Math.max(bl, 0));
     this.applyTint(this.tint);
     u.uTunnel.value = tunnel;
     this.valley.update(this.renderer, z);
@@ -324,6 +357,8 @@ export class Engine {
   }
 
   dispose(): void {
+    this.abort.abort();
+    this.atlas.value?.dispose();
     this.valley.dispose();
     this.numbers.dispose();
     for (const wall of this.walls) wall.dispose();

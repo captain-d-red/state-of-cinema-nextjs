@@ -21,7 +21,10 @@ const srcDir = path.resolve(
 );
 
 const { films } = parseCatalogue(JSON.parse(await fs.readFile(path.join(root, 'src', 'data', 'films.json'), 'utf8')));
-const rows = Math.ceil(films.length / ATLAS.columns);
+if (films.length > ATLAS.columns * ATLAS.rows) {
+  throw new Error(`${films.length} films do not fit an atlas of ${ATLAS.columns} × ${ATLAS.rows} cells`);
+}
+const rows = ATLAS.rows;
 const cells = await Promise.all(
   films.map(async (film, i) => ({
     input: await sharp(path.join(srcDir, `${film.slug}.jpg`))

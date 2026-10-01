@@ -6,18 +6,22 @@ import {
   NormalBlending,
   Points,
   RawShaderMaterial,
+  Vector2,
   Vector3,
   type IUniform,
+  type Texture,
 } from 'three';
-import type { Film } from '@/data/catalogue';
-import { hexToLinear } from '@/lib/color';
 import { clamp, smoothstep } from '@/lib/math';
+import { ATLAS } from '@/data/atlas';
 import { numbersFragment, numbersVertex } from './shaders/numbers';
 import type { ValleyUniforms } from './Valley';
 import { CAMERA } from './world';
 
-/** Particles in one figure. Enough that a two or three digit number reads solid at 4K. */
-const PARTICLES = 7000;
+/**
+ * Posters in one figure. Each particle is a tiny print of one of the films the figure counts,
+ * so the number is built out of those films, and this many fill a three digit figure solidly.
+ */
+const PARTICLES = 2400;
 /** Height of a figure's glyphs in world units, and how far above the ground it stands. */
 const GLYPH_HEIGHT = 1.4;
 const LIFT = 0.02;
@@ -33,10 +37,8 @@ const RASTER = 220;
 export interface Figure {
   readonly value: number;
   readonly z: number;
-  /** The films the figure counts. Its particles take their poster colours. */
-  readonly films: readonly Film[];
-  /** The station tint, which the poster colours are drawn halfway toward so the figure sits in its light. */
-  readonly tint: string;
+  /** Catalogue indices of the films the figure counts, whose posters it is built from. */
+  readonly posters: readonly number[];
 }
 
 /** Random points inside the glyphs of a string, in world units centred on the origin. */
@@ -67,7 +69,7 @@ function sampleGlyphs(text: string, count: number, fontFamily: string): Float32A
   return points;
 }
 
-/** One rising figure per stat station, each a cloud of particles in the colours of its films. */
+/** One rising figure per stat station, each built from tiny prints of the films it counts. */
 export class Numbers {
   readonly group = new Group();
   private readonly figures: {
@@ -77,7 +79,13 @@ export class Numbers {
     form: number;
   }[] = [];
 
-  constructor(figures: readonly Figure[], valley: ValleyUniforms, cursor: IUniform<Vector3>, fontFamily: string) {
+  constructor(
+    figures: readonly Figure[],
+    valley: ValleyUniforms,
+    cursor: IUniform<Vector3>,
+    atlas: IUniform<Texture | null>,
+    fontFamily: string,
+  ) {
     const shared: Record<string, IUniform> = valley;
     for (const figure of figures) {
       const geometry = new BufferGeometry();
@@ -85,21 +93,14 @@ export class Numbers {
         'position',
         new BufferAttribute(sampleGlyphs(String(figure.value), PARTICLES, fontFamily), 3),
       );
-      const colours = new Float32Array(PARTICLES * 3);
+      const posters = new Float32Array(PARTICLES);
       const seeds = new Float32Array(PARTICLES);
-      const palettes = figure.films.flatMap((f) => [hexToLinear(f.palette.key), hexToLinear(f.palette.accent)]);
-      const [tr, tg, tb] = hexToLinear(figure.tint);
-      const tintPeak = Math.max(tr, tg, tb, 0.05);
       for (let i = 0; i < PARTICLES; i++) {
-        const [r, g, b] = palettes[Math.floor(Math.random() * palettes.length)]!;
-        // Posters are dark on average, so their colours are lifted to read as lit grains, then
-        // drawn halfway to the station's light, so the figure reads as one object in one light.
-        const lift = 1 / Math.max(r, g, b, 0.05);
-        const mixRgb = (c: number, t: number) => 0.9 * (0.5 * c * lift + 0.5 * (t / tintPeak));
-        colours.set([mixRgb(r, tr), mixRgb(g, tg), mixRgb(b, tb)], i * 3);
+        // Films take turns, so every film the figure counts appears in it a fair number of times.
+        posters[i] = figure.posters[i % figure.posters.length]!;
         seeds[i] = Math.random();
       }
-      geometry.setAttribute('aColour', new BufferAttribute(colours, 3));
+      geometry.setAttribute('aPoster', new BufferAttribute(posters, 1));
       geometry.setAttribute('aSeed', new BufferAttribute(seeds, 1));
       const uniforms = { uForm: { value: 0 }, uVisible: { value: 0 } };
       const material = new RawShaderMaterial({
@@ -111,6 +112,8 @@ export class Numbers {
           ...uniforms,
           uCentre: { value: new Vector3(0, LIFT + GLYPH_HEIGHT / 2, figure.z) },
           uCursor: cursor,
+          uAtlas: atlas,
+          uAtlasCells: { value: new Vector2(ATLAS.columns, ATLAS.rows) },
         },
         transparent: true,
         depthWrite: false,
