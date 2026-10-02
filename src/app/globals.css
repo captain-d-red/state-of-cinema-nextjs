@@ -18,8 +18,7 @@
 /* One fluid root, so the interface keeps its proportions from a phone up to a 4K screen. */
 html {
   font-size: clamp(14px, calc(min(0.36vw, 0.64vh) + 9px), 26px);
-  /* Pure black, so the bars around a framed stage crop cleanly from a recording. */
-  background: #000;
+  background: var(--ink);
   /* The page scrolls by wheel and touch, and the station ticks already show where you are. */
   scrollbar-width: none;
   color: var(--paper);
@@ -30,7 +29,7 @@ html {
 
 body {
   margin: 0;
-  background: #000;
+  background: var(--ink);
   overscroll-behavior: none;
 }
 

@@ -38,7 +38,7 @@ function chooseQuality(): Quality {
 
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 /** Frames the stage as a true 16:9 with black bars, for recording. False lets it fill the window. */
-const LETTERBOX = true;
+const LETTERBOX = false;
 /** What the opening's curtain is printed with: the title in foil, small lines in ink at its corners. */
 const CURTAIN = {
   kicker: 'A first look',

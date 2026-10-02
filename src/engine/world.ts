@@ -25,7 +25,7 @@ export const CAMERA = {
    * stands, so at the opening its eye stands this much further back, and the curtain's 3.6
    * units fit inside the frame's width.
    */
-  openingStepBackTall: 2.2,
+  openingStepBackTall: 3,
   /** Vertical field of view in degrees, wider on tall screens so the valley still reads. */
   fov: 52,
   fovTall: 72,
