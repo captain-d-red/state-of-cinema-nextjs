@@ -3,10 +3,10 @@
  * blend, so they stay legible over the bright water and the dark sky alike.
  */
 
-/* The record light and the timecode, set under the logotype at the frame's left. */
+/* The record light and the timecode, in the frame's lower left corner above the categories. */
 .rec {
   position: absolute;
-  top: calc(var(--gutter) + 2.4rem);
+  bottom: calc(var(--gutter) + 1.6rem);
   left: var(--gutter);
   display: flex;
   align-items: center;
@@ -39,14 +39,13 @@
   }
 }
 
-/* The film strip that rolls downward, standing just above the station ticks. */
+/* The film strip, lying in the frame's lower right corner above the credit and rolling toward the edge. */
 .cue {
   position: absolute;
-  left: 50%;
-  bottom: calc(var(--gutter) + 4.2rem);
-  width: 0.9rem;
+  right: var(--gutter);
+  bottom: calc(var(--gutter) + 1.75rem);
+  width: 3.1rem;
   height: auto;
-  translate: -50% 0;
   overflow: visible;
   mix-blend-mode: difference;
   animation: appear 900ms 900ms ease both;
@@ -74,7 +73,7 @@
 
 @keyframes roll {
   to {
-    transform: translateY(12px);
+    transform: translateX(12px);
   }
 }
 

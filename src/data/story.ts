@@ -1,6 +1,7 @@
 import { filmTint } from '@/lib/thinFilm';
 import type { Catalogue, Film } from './catalogue';
 import { TOP_PICKS } from './picks';
+import { OFFER } from './platform';
 import { catalogueStats } from './stats';
 
 /**
@@ -31,14 +32,6 @@ export type Station = { readonly tint: string; readonly sheen: Sheen } & (
   | { readonly kind: 'outro' }
 );
 
-const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
-const spell = (n: number): string => NUMBER_WORDS[n] ?? String(n);
-
-function listNames(names: readonly string[]): string {
-  if (names.length <= 1) return names[0] ?? '';
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-}
-
 /**
  * The flight opens and closes in coated glass: a lavender grey light, and a film whose
  * thickness wanders across a whole order, so the river shows every colour of the sheen at once.
@@ -55,16 +48,20 @@ const BANDS = { magenta: band(505), violet: band(560), azure: band(665), mint: b
 /** The picks are lit by their own posters, so their water is a clean mirror with only a silver film. */
 const SILVER = { opd: 260, spread: 40, strength: 0.3 } as const;
 
-/** The whole flight, in order. Every figure is computed from the catalogue it is given. */
+/**
+ * The whole flight, in order: the entry journey a visitor takes before signing up. It opens on
+ * the curtain, counts what is on air across live, sport and news, narrows to the films, then
+ * to three picked for this visitor, and closes on the invitation to start watching. The films
+ * figure is computed from the catalogue it is given.
+ */
 export function buildStory({ films }: Catalogue): readonly Station[] {
   const stats = catalogueStats(films);
-  const { topGenre, topDirectors } = stats;
   const find = (slug: string): Film => {
     const film = films.find((f) => f.slug === slug);
     if (!film) throw new Error(`${slug} is not in the catalogue`);
     return film;
   };
-  const many = topDirectors.names.length > 1;
+  const everything = films.map((f) => f.slug);
 
   const picks = TOP_PICKS.map(({ slug, tint }, i) => {
     const film = find(slug);
@@ -76,34 +73,34 @@ export function buildStory({ films }: Catalogue): readonly Station[] {
     {
       kind: 'stat',
       ...BANDS.magenta,
-      value: stats.films,
-      label: 'Films in the catalogue',
-      detail: `${stats.years} years of cinema, from ${stats.firstYear} to ${stats.lastYear}.`,
-      films: films.map((f) => f.slug),
+      value: OFFER.liveChannels,
+      label: 'Live channels',
+      detail: 'News, sport and entertainment, on air right now.',
+      films: everything,
     },
     {
       kind: 'stat',
       ...BANDS.violet,
-      value: stats.hours,
-      label: 'Hours to watch',
-      detail: `${stats.longest.title} runs longest, at ${stats.longest.minutes} minutes.`,
-      films: films.map((f) => f.slug),
+      value: OFFER.leagues,
+      label: 'Leagues, live',
+      detail: 'Every match as it happens, and every replay after.',
+      films: everything,
     },
     {
       kind: 'stat',
       ...BANDS.azure,
-      value: topGenre.slugs.length,
-      label: `${listNames(topGenre.names)} films`,
-      detail: 'The genre the catalogue holds the most of.',
-      films: topGenre.slugs,
+      value: OFFER.newsHours,
+      label: 'Hours of news a day',
+      detail: 'Local, national and world desks, always on.',
+      films: everything,
     },
     {
       kind: 'stat',
       ...BANDS.mint,
-      value: topDirectors.slugs.length,
-      label: many ? `By ${spell(topDirectors.names.length)} directors` : 'By one director',
-      detail: `${listNames(topDirectors.names)}, ${spell(topDirectors.each)} films${many ? ' each' : ''}.`,
-      films: topDirectors.slugs,
+      value: stats.films,
+      label: 'The best films',
+      detail: `Our most watched of ${stats.years} years of cinema, ${stats.firstYear} to ${stats.lastYear}.`,
+      films: everything,
     },
     ...picks,
     { kind: 'outro', ...OPENING },

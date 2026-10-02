@@ -252,8 +252,8 @@ export class Curtain {
     return {
       origin: [this.origin.x, this.origin.y, this.origin.z],
       direction: [this.direction.x, this.direction.y, this.direction.z],
-      radius: 0.24,
-      depth: 0.12,
+      radius: 0.26,
+      strength: 4,
     };
   }
 

@@ -26,11 +26,9 @@ import { CAMERA, RIVER, valleyCentre } from './world';
 
 /**
  * The print is the poster's own two by three, hung with its hem a little above the water. The
- * rail, the clips, the cloth and its rod are flown: they hoist up the posts and out of the
- * frame as the camera leaves, so the camera never flies into the cloth.
+ * camera rises over each banner as it flies on, so the installation never has to move.
  *
- *     ┃                           ┃   posts rise far above the rail, out of the frame
- *     ┃━━━━●━━━●━━━●━━━●━━━●━━━━┃   rail and six clips, flown
+ *     ┃━━━━●━━━●━━━●━━━●━━━●━━━━┃   rail on two posts, six clips
  *     ┃ ┌───────────────────────┐ ┃
  *     ┃ │        poster         │ ┃   satin print 1.28 × 1.92
  *     ┃ └═══════════════════════┘ ┃   weighted hem rod
@@ -52,8 +50,6 @@ const SPEC: ClothSpec = {
   hemMass: 20,
   gather: 0.9,
 };
-/** How far the flown section hoists, enough to lift the hem above the frame as the camera nears. */
-const HOIST = 3.6;
 const SPAN = WIDTH + 0.2;
 /** Lamps stand ahead of the banner and aim at a point a third of the way down it. */
 const MOUNTS: readonly Mount[] = ([-1, 1] as const).map((side) => ({
@@ -85,8 +81,6 @@ async function loadPoster(src: string, signal: AbortSignal): Promise<Texture> {
  */
 export class Banner {
   readonly group = new Group();
-  /** The rail, clips, cloth and rod, which hoist together. */
-  private readonly flown = new Group();
   private readonly cloth = new Cloth(SPEC);
   private readonly fabric: Mesh<PlaneGeometry, RawShaderMaterial>;
   private readonly rod: Mesh<CylinderGeometry, RawShaderMaterial>;
@@ -124,14 +118,13 @@ export class Banner {
     this.fabric = new Mesh(new PlaneGeometry(WIDTH, HEIGHT, SPEC.columns - 1, SPEC.rows - 1), clothMaterial);
     const kit = materials(shared, this.strike.power, valley.uCamPos);
     this.rod = new Mesh(new CylinderGeometry(0.011, 0.011, WIDTH + 0.05, 12), kit.steel);
-    this.flown.add(rail(kit.steel, SPAN), this.fabric, this.rod);
+    this.group.add(rail(kit.steel, SPAN), this.fabric, this.rod);
     for (const c of SPEC.clips) {
       const jaw = clip(kit.steel);
       jaw.position.set((c / (SPEC.columns - 1) - 0.5) * WIDTH * SPEC.gather, 0.014, 0.004);
-      this.flown.add(jaw);
+      this.group.add(jaw);
     }
-    this.group.add(...posts(kit.steel, { span: SPAN, drop: HEIGHT + HEM, above: HOIST + 0.3 }));
-    this.group.add(...uplights(kit, MOUNTS), this.flown);
+    this.group.add(...posts(kit.steel, { span: SPAN, drop: HEIGHT + HEM, above: 0.1 }), ...uplights(kit, MOUNTS));
     this.materials.push(clothMaterial, kit.steel, kit.lens, kit.beam);
     this.group.traverse((o) => (o.frustumCulled = false));
 
@@ -172,20 +165,18 @@ export class Banner {
   }
 
   /**
-   * Strikes the lamps as the camera arrives, hoists the banner as it leaves, and steps the
-   * cloth. `speed` is the camera's speed in units a second, whose passing air pushes the
+   * Strikes the lamps as the camera arrives and steps the cloth. `speed` is the camera's speed in units a second, whose passing air pushes the
    * banner, and `pointer` is in normalised device coordinates with its presence in z.
    */
   update(time: number, cameraZ: number, speed: number, camera: Camera, pointer: Vector3, dt: number, still: boolean) {
     const rel = cameraZ - CAMERA.lookAhead - this.z;
-    this.group.visible = rel > -4 && rel < 14 && this.poster !== null;
+    // The camera passes over the banner a little past its station, so it stays until then.
+    this.group.visible = rel > -CAMERA.lookAhead - 0.6 && rel < 14 && this.poster !== null;
     if (!this.group.visible) {
       this.strike.off();
       return;
     }
     this.strike.update(smoothstep(7, 2.5, rel), time, still);
-    // Leaving, the flown section rises up the posts on an ease, clear before the camera arrives.
-    this.flown.position.y = HOIST * smoothstep(-0.6, -3.4, rel);
     if (still) return;
 
     // A breeze along the river that turns back and forth on two slow incommensurate beats, so
@@ -219,7 +210,7 @@ export class Banner {
   private pokeFrom(camera: Camera, pointer: Vector3): Poke | null {
     if (pointer.z < 0.5) return null;
     this.raycaster.setFromCamera(new Vector2(pointer.x, pointer.y), camera);
-    this.inverse.copy(this.flown.matrixWorld).invert();
+    this.inverse.copy(this.group.matrixWorld).invert();
     this.origin.copy(this.raycaster.ray.origin).applyMatrix4(this.inverse);
     this.direction.copy(this.raycaster.ray.direction).transformDirection(this.inverse);
     if (Math.abs(this.direction.z) < 1e-4) return null;
@@ -230,8 +221,8 @@ export class Banner {
     return {
       origin: [this.origin.x, this.origin.y, this.origin.z],
       direction: [this.direction.x, this.direction.y, this.direction.z],
-      radius: 0.2,
-      depth: 0.14,
+      radius: 0.22,
+      strength: 5,
     };
   }
 

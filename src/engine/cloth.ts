@@ -44,13 +44,18 @@ export interface ClothForces {
   readonly poke: Poke | null;
 }
 
+/**
+ * A hand resting on the cloth: a soft push along the pointer's ray, strongest at its centre
+ * and gone at its radius. It acts as a force, like the wind, so a held press settles into a
+ * gentle dent and a moving one leaves the cloth swaying, never jittering.
+ */
 export interface Poke {
   readonly origin: readonly [number, number, number];
   /** Unit direction of the ray. */
   readonly direction: readonly [number, number, number];
   readonly radius: number;
-  /** How far the press pushes the cloth along the ray at its centre. */
-  readonly depth: number;
+  /** Acceleration at the centre of the press, in units a second squared. */
+  readonly strength: number;
 }
 
 /** Share of velocity kept each step, the cloth's loss to the air and its own weave. */
@@ -198,9 +203,11 @@ export class Cloth {
       // The push is a force, so it moves a particle in inverse proportion to its mass, and the
       // heavy ends of the hem rod barely feel the air that billows the cloth around them.
       const push = DRAG * across * this.inverseMass[i]!;
-      const ax = push * n[0]!;
-      const ay = push * n[1]! - forces.gravity;
-      const az = push * n[2]!;
+      const press = forces.poke ? this.pressAt(k, forces.poke) * this.inverseMass[i]! : 0;
+      const d = forces.poke?.direction;
+      const ax = push * n[0]! + (d ? d[0] * press : 0);
+      const ay = push * n[1]! - forces.gravity + (d ? d[1] * press : 0);
+      const az = push * n[2]! + (d ? d[2] * press : 0);
       for (let a = 0; a < 3; a++) {
         const now = p[k + a]!;
         p[k + a] = now + (now - q[k + a]!) * DAMPING + [ax, ay, az][a]! * dt2;
@@ -211,7 +218,19 @@ export class Cloth {
       this.relax();
       if (this.spec.hem === 'rod') this.straightenRod();
     }
-    if (forces.poke) this.press(forces.poke);
+  }
+
+  /** The press's acceleration at the particle starting at index `k`, falling off with distance from the ray. */
+  private pressAt(k: number, { origin, direction, radius, strength }: Poke): number {
+    const p = this.positions;
+    const ox = p[k]! - origin[0];
+    const oy = p[k + 1]! - origin[1];
+    const oz = p[k + 2]! - origin[2];
+    const along = ox * direction[0] + oy * direction[1] + oz * direction[2];
+    const off = Math.hypot(ox - along * direction[0], oy - along * direction[1], oz - along * direction[2]);
+    if (off >= radius) return 0;
+    const fall = 1 - off / radius;
+    return strength * fall * fall * (3 - 2 * fall);
   }
 
   private distance(a: number, b: number): number {
@@ -267,37 +286,6 @@ export class Cloth {
         p[(first + c) * 3 + a] = p[first * 3 + a]! + (p[last * 3 + a]! - p[first * 3 + a]!) * t;
       }
     }
-  }
-
-  /** Pushes particles near the ray along it, deepest at its centre, as a fingertip presses fabric. */
-  private press({ origin, direction, radius, depth }: Poke): void {
-    const p = this.positions;
-    for (let i = 0; i < this.inverseMass.length; i++) {
-      if (this.inverseMass[i] === 0) continue;
-      const k = i * 3;
-      const ox = p[k]! - origin[0];
-      const oy = p[k + 1]! - origin[1];
-      const oz = p[k + 2]! - origin[2];
-      const along = ox * direction[0] + oy * direction[1] + oz * direction[2];
-      const off = Math.hypot(ox - along * direction[0], oy - along * direction[1], oz - along * direction[2]);
-      if (off >= radius) continue;
-      const fall = (1 - off / radius) ** 2;
-      // Only push forward of where the press has already reached, so a held press does not keep sinking.
-      const push = Math.max(0, depth * fall - Math.max(0, along - this.restDepth(i, origin, direction)));
-      p[k] = p[k]! + direction[0] * push * 0.2;
-      p[k + 1] = p[k + 1]! + direction[1] * push * 0.2;
-      p[k + 2] = p[k + 2]! + direction[2] * push * 0.2;
-    }
-  }
-
-  /** How far along the ray a particle's rest position lies. */
-  private restDepth(i: number, origin: readonly number[], direction: readonly number[]): number {
-    const r = this.rest;
-    return (
-      (r[i * 3]! - origin[0]!) * direction[0]! +
-      (r[i * 3 + 1]! - origin[1]!) * direction[1]! +
-      (r[i * 3 + 2]! - origin[2]!) * direction[2]!
-    );
   }
 
   /** The cloth's normal at a particle from its neighbours across and down, facing +z at rest. */

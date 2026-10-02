@@ -52,29 +52,30 @@ export function Timecode() {
 }
 
 /**
- * A short length of film whose frames and sprocket holes roll downward, the way a reel feeds
- * a projector, as the cue that scrolling runs the film.
+ * A short length of film lying on its side, whose frames and sprocket holes roll toward the
+ * frame's edge the way a reel feeds a projector, as the cue that scrolling runs the film.
  *
- *   ▫ ┌──┐ ▫      the strip is 14 wide, holes every 6 down each edge,
- *   ▫ │  │ ▫      a frame every 12, all moving one frame per cycle
- *   ▫ └──┘ ▫
+ *   ▫ ▫ ▫ ▫ ▫ ▫ ▫ ▫      the strip is 14 high, holes every 6 along each edge,
+ *   ┌───┐   ┌───┐        a frame every 12, all moving one frame per cycle
+ *   └───┘   └───┘
+ *   ▫ ▫ ▫ ▫ ▫ ▫ ▫ ▫
  */
 export function ScrollCue() {
   return (
-    <svg className={styles.cue} viewBox="0 0 14 48" aria-hidden="true">
+    <svg className={styles.cue} viewBox="0 0 48 14" aria-hidden="true">
       <defs>
         <clipPath id="cue-gate">
-          <rect x="0" y="0" width="14" height="48" rx="1.5" />
+          <rect x="0" y="0" width="48" height="14" rx="1.5" />
         </clipPath>
       </defs>
       <g clipPath="url(#cue-gate)">
-        <rect className={styles.base} x="0" y="0" width="14" height="48" />
+        <rect className={styles.base} x="0" y="0" width="48" height="14" />
         <g className={styles.roll}>
           {Array.from({ length: 10 }, (_, i) => (
-            <g key={i} transform={`translate(0 ${i * 6 - 12})`}>
-              <rect className={styles.hole} x="1.4" y="1.6" width="1.8" height="2.6" rx="0.5" />
-              <rect className={styles.hole} x="10.8" y="1.6" width="1.8" height="2.6" rx="0.5" />
-              {i % 2 === 0 && <rect className={styles.frame} x="4.4" y="1" width="5.2" height="10" rx="0.6" />}
+            <g key={i} transform={`translate(${i * 6 - 12} 0)`}>
+              <rect className={styles.hole} x="1.6" y="1.4" width="2.6" height="1.8" rx="0.5" />
+              <rect className={styles.hole} x="1.6" y="10.8" width="2.6" height="1.8" rx="0.5" />
+              {i % 2 === 0 && <rect className={styles.frame} x="1" y="4.4" width="10" height="5.2" rx="0.6" />}
             </g>
           ))}
         </g>

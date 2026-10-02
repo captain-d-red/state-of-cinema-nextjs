@@ -82,7 +82,7 @@ describe('Cloth', () => {
     settle(cloth, STILL, 240);
     const centre = 6 * SPEC.columns + 4;
     const [x, y] = at(cloth, centre);
-    const poke = { origin: [x!, y!, 1] as const, direction: [0, 0, -1] as const, radius: 0.3, depth: 0.15 };
+    const poke = { origin: [x!, y!, 1] as const, direction: [0, 0, -1] as const, radius: 0.3, strength: 8 };
     settle(cloth, { ...STILL, poke }, 60);
     expect(at(cloth, centre)[2]!).toBeLessThan(-0.03);
     settle(cloth, STILL, 900);

@@ -1,6 +1,7 @@
 'use client';
 
 import type { Film } from '@/data/catalogue';
+import { CATEGORIES } from '@/data/platform';
 import type { Station } from '@/data/story';
 import styles from './Hud.module.css';
 import { Logotype } from './Logotype';
@@ -42,8 +43,8 @@ function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | 
           {/* The title is printed on the curtain in the scene, so only assistive technology reads it here. */}
           <h1 className="sr-only">The state of experiences</h1>
           <p className="sr-only">
-            Seventy-two films from sixteen years of cinema. Open the curtain to fly the river, count them, meet the
-            three we would watch tonight, and find every one on the reel.
+            A first look at everything we stream, live channels, sport, news and the best films, before you sign up.
+            Open the curtain to fly the river and meet three films picked for you.
           </p>
           <Timecode />
           <ScrollCue />
@@ -63,7 +64,7 @@ function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | 
     case 'pick':
       return (
         <div className={styles.pick} key={station.film.slug}>
-          <p className={styles.kicker}>Top pick № {station.rank}</p>
+          <p className={styles.kicker}>Picked for you · № {station.rank}</p>
           <h2 className={styles.pickTitle} style={{ '--len': station.film.title.length }}>
             <Letters text={station.film.title} />
           </h2>
@@ -83,7 +84,7 @@ function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | 
       return (
         <div className={styles.outro} key="outro">
           <h2 className={styles.outroLine}>
-            <Letters text="Pick tonight's film" />
+            <Letters text="Your first night is on us" />
           </h2>
           {topPick && (
             <button type="button" className={styles.cta} onClick={() => onPlay(topPick)}>
@@ -91,7 +92,9 @@ function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | 
               Watch the top pick
             </button>
           )}
-          <p className={styles.footnote}>Every film is on the reel. Click a frame to watch its trailer.</p>
+          <p className={styles.footnote}>
+            Every title is on the reel. Click a frame for its trailer, then sign up free to watch them all.
+          </p>
         </div>
       );
   }
@@ -149,7 +152,7 @@ export function Hud({ story, index, topPick, soundOn, onToggleSound, onPlay, onJ
       </section>
 
       <footer className={styles.bottom}>
-        <p className={styles.credit}>72 films · 2010 to 2025</p>
+        <p className={styles.credit}>{CATEGORIES.join(' · ')}</p>
         <nav className={styles.ticks} aria-label="Stations">
           {story.map((_, i) => (
             <button
@@ -163,7 +166,7 @@ export function Hud({ story, index, topPick, soundOn, onToggleSound, onPlay, onJ
             />
           ))}
         </nav>
-        <p className={styles.credit}>An experience by AK47</p>
+        <p className={styles.credit}>A Three.js study by AK47</p>
       </footer>
     </div>
   );

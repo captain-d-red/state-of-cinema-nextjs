@@ -9,10 +9,12 @@ const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: 'AK47 · The State of Experiences',
-  description: 'Seventy-two films from 2010 to 2025 in numbers and picks, told as one flight down a river of light.',
+  description:
+    'A first look at everything we stream, live channels, sport, news and the best films, told as one flight down a river of light.',
   openGraph: {
     title: 'AK47 · The State of Experiences',
-    description: 'Seventy-two films in numbers and picks, told as one flight down a river of light.',
+    description:
+      'Live channels, sport, news and the best films, picked for you, told as one flight down a river of light.',
     type: 'website',
   },
   twitter: { card: 'summary_large_image' },

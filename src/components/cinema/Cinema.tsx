@@ -3,6 +3,7 @@
 import Lenis from 'lenis';
 import { useEffect, useRef, useState } from 'react';
 import { catalogue, type Film } from '@/data/catalogue';
+import { CATEGORIES } from '@/data/platform';
 import { buildStory } from '@/data/story';
 import { Engine } from '@/engine/Engine';
 import { SCROLL_PER_STATION } from '@/engine/scroll';
@@ -26,10 +27,10 @@ const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2
 const LETTERBOX = true;
 /** What the opening's curtain is printed with: the title in foil, small lines in ink at its corners. */
 const CURTAIN = {
-  kicker: 'Now showing',
-  corner: 'Seventy-two films · 2010 to 2025',
+  kicker: 'A first look',
+  corner: CATEGORIES.join(' · '),
   title: ['The state', 'of experiences'],
-  foot: 'Sixteen years of cinema',
+  foot: 'The best of everything, picked for you',
   cue: 'A flight in seven reels',
 } as const;
 
