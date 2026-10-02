@@ -1,7 +1,8 @@
 /**
  * Proves the sound is audible and follows the flight. Before the page loads, every connection
  * into the speakers is routed through an analyser, so the real output level can be read. The
- * level is measured with the sound off, on and still, and on during a fast flight.
+ * level is measured before any gesture, after the first click starts the score, during a fast
+ * flight, and once the toggle turns it off.
  *
  *   node tools/sound.mjs [url]
  */
@@ -36,8 +37,9 @@ const rms = () =>
     return Math.sqrt(data.reduce((s, v) => s + v * v, 0) / data.length);
   });
 const db = (v) => (v > 0 ? `${(20 * Math.log10(v)).toFixed(1)} dBFS` : 'silent');
-const off = await rms();
-await page.getByRole('button', { name: 'Sound' }).click();
+// Sound is on by default, and starts at the first gesture, here a click on the river.
+const before = await rms();
+await page.mouse.click(700, 700);
 await page.waitForTimeout(2000);
 const still = await rms();
 let flying = 0;
@@ -46,5 +48,10 @@ for (let i = 0; i < 12; i++) {
   await page.waitForTimeout(40);
   flying = Math.max(flying, await rms());
 }
-console.log(`off ${db(off)}, on and still ${db(still)}, on and flying ${db(flying)}`);
+await page.getByRole('button', { name: 'Sound' }).click();
+await page.waitForTimeout(1500);
+const off = await rms();
+console.log(
+  `before a gesture ${db(before)}, after the first click ${db(still)}, flying ${db(flying)}, toggled off ${db(off)}`,
+);
 await browser.close();

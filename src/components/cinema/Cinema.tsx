@@ -63,8 +63,10 @@ export function Cinema() {
   const reticleRef = useRef<ReticleHandle>(null);
   const meterRef = useRef<HTMLOutputElement>(null);
   const [playing, setPlaying] = useState<Film | null>(null);
-  const [soundOn, setSoundOn] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
   const soundRef = useRef<Sound | null>(null);
+  /** Whether the score should be playing now, read by the first gesture that starts it. */
+  const wantSound = useRef(true);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -258,15 +260,29 @@ export function Cinema() {
     };
   }, []);
 
-  // Sound starts from the toggle, the user gesture browsers require, and the trailer silences it.
+  // Sound is on from the start, and the trailer silences it. Browsers let audio begin only
+  // from a gesture, so the score starts at the visitor's first click, tap or key, and fades in.
   const toggleSound = () => {
-    const next = !soundOn;
-    soundRef.current ??= next ? new Sound() : null;
-    setSoundOn(next);
+    soundRef.current ??= new Sound();
+    setSoundOn(!soundOn);
   };
   useEffect(() => {
-    soundRef.current?.setEnabled(soundOn && !playing);
+    wantSound.current = soundOn && !playing;
+    soundRef.current?.setEnabled(wantSound.current);
   }, [soundOn, playing]);
+  useEffect(() => {
+    const gestures = ['pointerdown', 'keydown', 'touchend'] as const;
+    const start = () => {
+      for (const type of gestures) window.removeEventListener(type, start);
+      if (soundRef.current) return;
+      soundRef.current = new Sound();
+      soundRef.current.setEnabled(wantSound.current);
+    };
+    for (const type of gestures) window.addEventListener(type, start, { passive: true });
+    return () => {
+      for (const type of gestures) window.removeEventListener(type, start);
+    };
+  }, []);
 
   // The page holds still under the trailer, so a wheel inside the player never flies the camera.
   useEffect(() => {
