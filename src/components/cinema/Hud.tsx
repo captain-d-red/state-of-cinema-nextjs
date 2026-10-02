@@ -111,7 +111,6 @@ export function Hud({ story, index, topPick, soundOn, onToggleSound, onPlay, onJ
   return (
     <div className={styles.hud}>
       <header className={styles.top}>
-        <p className={styles.status}>{statusFor(index, story.length)}</p>
         <a
           className={styles.brand}
           href="#"
@@ -123,6 +122,7 @@ export function Hud({ story, index, topPick, soundOn, onToggleSound, onPlay, onJ
         >
           <Logotype className={styles.mark} />
         </a>
+        <p className={styles.status}>{statusFor(index, story.length)}</p>
         <div className={styles.actions}>
           <button
             type="button"

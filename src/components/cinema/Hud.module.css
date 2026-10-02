@@ -45,6 +45,10 @@
   justify-self: end;
 }
 
+.top .status {
+  justify-self: center;
+}
+
 .actions {
   display: flex;
   align-items: center;
@@ -100,6 +104,7 @@
 
 .brand {
   pointer-events: auto;
+  justify-self: start;
   color: var(--paper);
 }
 
@@ -140,11 +145,15 @@
   white-space: pre;
 }
 
+/*
+ * Each letter rises from under its line, so its box clips the bottom only. Tight tracking makes
+ * a letter's box narrower than its glyph and descenders hang below the box, so the clip reaches
+ * well past the sides and a third of an em below, and never cuts a stroke.
+ */
 .mask {
   display: inline-block;
-  overflow: hidden;
   vertical-align: bottom;
-  padding-bottom: 0.08em;
+  clip-path: inset(-0.5em -0.5em -0.32em -0.5em);
 }
 
 .letter {
@@ -155,7 +164,7 @@
 
 @keyframes rise {
   from {
-    transform: translateY(110%);
+    transform: translateY(150%);
   }
 }
 
