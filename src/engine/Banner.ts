@@ -49,7 +49,8 @@ const SPEC: ClothSpec = {
   width: WIDTH,
   height: HEIGHT,
   clips: [0, 4, 8, 12, 16, 20],
-  rodMass: 9,
+  rodMass: 20,
+  gather: 0.9,
 };
 const POST = { inset: 0.1, radius: 0.016, above: 0.1 } as const;
 /** Lamps stand ahead of the banner and aim at a point a third of the way down it. */
@@ -264,9 +265,12 @@ export class Banner {
 
     // A light breeze down the river, gusting on a few slow incommensurate beats, plus the air
     // the camera pushes ahead of itself as it flies close.
-    const gust = 0.7 + 0.45 * Math.sin(time * 0.61) + 0.25 * Math.sin(time * 1.73 + 1.1);
-    const wake = speed * 0.3 * smoothstep(9, 1, Math.abs(rel));
-    const wind: [number, number, number] = [0.45 * Math.sin(time * 0.37), 0.1 * Math.sin(time * 0.9), gust - wake];
+    // A breeze along the river that turns back and forth on two slow incommensurate beats, so
+    // the banner sways and breathes instead of leaning, plus the air the camera pushes ahead
+    // of itself as it flies close.
+    const breeze = 1.3 * (0.7 * Math.sin(time * 0.55) + 0.3 * Math.sin(time * 1.37 + 0.6)) + 0.15;
+    const wake = Math.min(speed * 0.15, 1) * smoothstep(9, 1, Math.abs(rel));
+    const wind: [number, number, number] = [0.35 * Math.sin(time * 0.41), 0, breeze - wake];
     const poke = this.pokeFrom(camera, pointer);
     this.owed = Math.min(this.owed + dt, MAX_STEPS * STEP);
     for (; this.owed >= STEP; this.owed -= STEP) this.cloth.step(STEP, { gravity: 9.8, wind, poke });

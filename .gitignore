@@ -50,3 +50,6 @@ next-env.d.ts
 # local tooling
 .claude/worktrees/
 __pycache__/
+
+# scratch capture scripts
+*.tmp.*

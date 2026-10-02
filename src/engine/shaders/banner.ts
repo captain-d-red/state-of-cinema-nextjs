@@ -63,7 +63,8 @@ void main() {
   for (int i = 0; i < ${LAMPS}; i++) {
     vec3 l;
     vec3 light = lampLight(i, vWorld, l);
-    float wrap = max((dot(n, l) + 0.3) / 1.3, 0.0);
+    // A little wrap, so a fold turned from the lamp falls to shadow without going black.
+    float wrap = max((dot(n, l) + 0.12) / 1.12, 0.0);
     lit += albedo * light * wrap;
     vec3 h = normalize(l + v);
     sheen += pow(max(dot(n, h), 0.0), 24.0) * 0.12 * dot(light, vec3(0.333));

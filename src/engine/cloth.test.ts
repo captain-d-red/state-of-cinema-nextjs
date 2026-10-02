@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Cloth, type ClothForces, type ClothSpec } from './cloth';
 
-const SPEC: ClothSpec = { columns: 9, rows: 13, width: 1, height: 1.5, clips: [0, 4, 8], rodMass: 6 };
+const SPEC: ClothSpec = { columns: 9, rows: 13, width: 1, height: 1.5, clips: [0, 4, 8], rodMass: 6, gather: 1 };
 const STILL: ClothForces = { gravity: 9.8, wind: [0, 0, 0], poke: null };
 const settle = (cloth: Cloth, forces: ClothForces, steps = 600) => {
   for (let i = 0; i < steps; i++) cloth.step(1 / 120, forces);
@@ -34,6 +34,13 @@ describe('Cloth', () => {
     const [mx, , mz] = at(cloth, first + 4);
     expect(mx!).toBeCloseTo((ax! + bx!) / 2, 4);
     expect(mz!).toBeCloseTo((az! + bz!) / 2, 4);
+  });
+
+  it('drapes in swags between the clips when they gather the cloth', () => {
+    const cloth = new Cloth({ ...SPEC, gather: 0.85 });
+    settle(cloth, STILL);
+    const between = 2 * SPEC.columns + 2;
+    expect(Math.abs(at(cloth, between)[2]!)).toBeGreaterThan(0.01);
   });
 
   it('billows downwind', () => {

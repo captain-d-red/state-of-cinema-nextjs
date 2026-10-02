@@ -20,6 +20,11 @@ export interface ClothSpec {
   readonly height: number;
   /** Columns of the top row held by clips. */
   readonly clips: readonly number[];
+  /**
+   * Share of the cloth's width the clips hold the top edge to. Under one, the cloth between
+   * clips has slack and drapes in soft swags, the folds that make hung fabric read as fabric.
+   */
+  readonly gather: number;
   /** Mass of each end of the hem rod against one particle of cloth. */
   readonly rodMass: number;
 }
@@ -48,7 +53,17 @@ const ITERATIONS = 10;
 /** How readily each kind of edge returns to its rest length per iteration. */
 const STIFFNESS = { structural: 1, shear: 0.5, bend: 0.08 } as const;
 /** Couples the wind's push to the cloth, in units of acceleration per unit of normal airspeed. */
-const DRAG = 1.6;
+const DRAG = 3.2;
+/**
+ * Real air is never one even push. The wind's strength varies across the cloth as two
+ * travelling waves, so ripples run through the fabric instead of the whole banner swinging.
+ *
+ * Their wavelengths, about seven and nine tenths of a unit, are shorter than the banner, so
+ * the cloth ripples within itself rather than rocking as one piece.
+ *
+ *   gust(x, y, t) = 1 + 0.6 · sin(9x + 3.1t) · cos(7y − 2.4t)
+ */
+const TURBULENCE = { depth: 0.6, across: 9, down: 7, a: 3.1, b: 2.4 } as const;
 
 export class Cloth {
   readonly positions: Float32Array;
@@ -59,12 +74,14 @@ export class Cloth {
   private readonly lengths: Float32Array;
   private readonly stiffness: Float32Array;
   private readonly normal = new Float32Array(3);
+  private clock = 0;
 
   constructor(readonly spec: ClothSpec) {
-    const { columns, rows, width, height, clips, rodMass } = spec;
+    const { columns, rows, width, height, clips, rodMass, gather } = spec;
     const count = columns * rows;
     this.positions = new Float32Array(count * 3);
     this.inverseMass = new Float32Array(count).fill(1);
+    // The constraints take their rest lengths from the cloth laid flat, before the clips gather it.
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < columns; c++) {
         const i = (r * columns + c) * 3;
@@ -102,6 +119,21 @@ export class Cloth {
     this.stiffness = Float32Array.from(kinds);
     this.lengths = new Float32Array(kinds.length);
     for (let e = 0; e < kinds.length; e++) this.lengths[e] = this.distance(pairs[e * 2]!, pairs[e * 2 + 1]!);
+
+    // Then the clips draw the top edge in, and every row is drawn in less the further it hangs
+    // below them, with a slight wave toward and away from the viewer between each pair of
+    // clips, so the slack buckles into alternating folds rather than at random.
+    for (let r = 0; r < rows; r++) {
+      const take = 1 - (1 - gather) * (1 - r / (rows - 1)) ** 2;
+      for (let c = 0; c < columns; c++) {
+        const i = (r * columns + c) * 3;
+        this.positions[i] = this.positions[i]! * take;
+        const between = (c / (columns - 1)) * (clips.length - 1);
+        this.positions[i + 2] = 0.012 * Math.sin(between * Math.PI) * (1 - r / (rows - 1));
+      }
+    }
+    this.previous.set(this.positions);
+    this.rest.set(this.positions);
   }
 
   /** Puts the cloth back flat and still, hanging from its clips. */
@@ -117,6 +149,8 @@ export class Cloth {
     const count = this.inverseMass.length;
     const dt2 = dt * dt;
     const [wx, wy, wz] = forces.wind;
+    this.clock += dt;
+    const t = this.clock;
     for (let i = 0; i < count; i++) {
       if (this.inverseMass[i] === 0) continue;
       const k = i * 3;
@@ -126,10 +160,18 @@ export class Cloth {
       // Air pushes along the cloth's normal in proportion to the airspeed across it.
       this.normalAt(i);
       const n = this.normal;
-      const across = (wx - vx) * n[0]! + (wy - vy) * n[1]! + (wz - vz) * n[2]!;
-      const ax = DRAG * across * n[0]!;
-      const ay = DRAG * across * n[1]! - forces.gravity;
-      const az = DRAG * across * n[2]!;
+      const gust =
+        1 +
+        TURBULENCE.depth *
+          Math.sin(p[k]! * TURBULENCE.across + t * TURBULENCE.a) *
+          Math.cos(p[k + 1]! * TURBULENCE.down - t * TURBULENCE.b);
+      const across = (wx * gust - vx) * n[0]! + (wy * gust - vy) * n[1]! + (wz * gust - vz) * n[2]!;
+      // The push is a force, so it moves a particle in inverse proportion to its mass, and the
+      // heavy ends of the hem rod barely feel the air that billows the cloth around them.
+      const push = DRAG * across * this.inverseMass[i]!;
+      const ax = push * n[0]!;
+      const ay = push * n[1]! - forces.gravity;
+      const az = push * n[2]!;
       for (let a = 0; a < 3; a++) {
         const now = p[k + a]!;
         p[k + a] = now + (now - q[k + a]!) * DAMPING + [ax, ay, az][a]! * dt2;
