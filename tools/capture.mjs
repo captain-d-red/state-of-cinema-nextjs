@@ -4,7 +4,7 @@
  *
  *   node tools/capture.mjs [url] [--stops 0,1,5] [--sizes laptop,fhd] [--stir] [--settle 3000]
  *
- * --stir drags the pointer through the tray before each shot, so the liquid is moving.
+ * --stir drags the pointer across the river before each shot, so the water is moving.
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';

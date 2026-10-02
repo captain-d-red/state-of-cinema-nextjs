@@ -74,6 +74,79 @@ function steel(uniforms: Record<string, IUniform>): RawShaderMaterial {
   });
 }
 
+const UP = new Vector3(0, 1, 0);
+
+/** Where an uplight stands in banner space, one either side, and the point on the cloth it aims at. */
+function lampMount(side: -1 | 1): { at: Vector3; target: Vector3 } {
+  return {
+    at: new Vector3(side * LAMP.across, -HEIGHT - HEM + 0.07, LAMP.ahead),
+    target: new Vector3(side * 0.18, LAMP.aim * HEIGHT, 0),
+  };
+}
+
+/** The steel frame: two posts on round feet standing in the water, a top bar and the clips along it. */
+function gantry(metal: RawShaderMaterial): Mesh[] {
+  const reach = HEIGHT + HEM + POST.above;
+  const postX = WIDTH / 2 + POST.inset;
+  const parts: Mesh[] = [];
+  for (const side of [-1, 1]) {
+    const post = new Mesh(new CylinderGeometry(POST.radius, POST.radius, reach, 12), metal);
+    post.position.set(side * postX, POST.above - reach / 2, 0);
+    const foot = new Mesh(new CylinderGeometry(0.075, 0.085, 0.014, 24), metal);
+    foot.position.set(side * postX, -HEIGHT - HEM + 0.007, 0);
+    parts.push(post, foot);
+  }
+  const bar = new Mesh(new CylinderGeometry(0.013, 0.013, postX * 2, 12), metal);
+  bar.rotation.z = Math.PI / 2;
+  bar.position.set(0, 0.045, 0);
+  parts.push(bar);
+  for (const c of SPEC.clips) {
+    const clip = new Mesh(new BoxGeometry(0.024, 0.052, 0.018), metal);
+    clip.position.set((c / (SPEC.columns - 1) - 0.5) * WIDTH, 0.014, 0.004);
+    parts.push(clip);
+  }
+  return parts;
+}
+
+/** Each uplight: a housing on a stake, its glowing lens, and the cone of its beam through the haze. */
+function uplights(metal: RawShaderMaterial, lens: RawShaderMaterial, beam: RawShaderMaterial): Mesh[] {
+  const parts: Mesh[] = [];
+  for (const side of [-1, 1] as const) {
+    const { at, target } = lampMount(side);
+    const aim = target.clone().sub(at).normalize();
+    const turn = new Quaternion().setFromUnitVectors(UP, aim);
+    const housing = new Mesh(new CylinderGeometry(0.034, 0.04, 0.1, 20), metal);
+    housing.position.copy(at);
+    housing.quaternion.copy(turn);
+    const glass = new Mesh(new CylinderGeometry(0.029, 0.029, 0.004, 20), lens);
+    glass.position.copy(at).addScaledVector(aim, 0.051);
+    glass.quaternion.copy(turn);
+    const stake = new Mesh(new CylinderGeometry(0.008, 0.008, 0.07, 8), metal);
+    stake.position.copy(at).setY(at.y - 0.035);
+    // The beam is a cone with its apex at the lamp, reaching most of the way to the cloth.
+    const length = target.distanceTo(at) * 0.95;
+    const cone = new Mesh(new ConeGeometry(0.42, length, 32, 1, true), beam);
+    cone.position.copy(at).addScaledVector(aim, length / 2);
+    cone.quaternion.setFromUnitVectors(UP, aim.clone().negate());
+    cone.renderOrder = 70;
+    parts.push(housing, glass, stake, cone);
+  }
+  return parts;
+}
+
+/** Fetches a poster and decodes it bottom row first, the order a texture with flipY off expects. */
+async function loadPoster(src: string, signal: AbortSignal): Promise<Texture> {
+  const response = await fetch(src, { signal });
+  if (!response.ok) throw new Error(`${src} failed with ${response.status}`);
+  const bitmap = await createImageBitmap(await response.blob(), { imageOrientation: 'flipY' });
+  const texture = new Texture(bitmap);
+  texture.flipY = false;
+  texture.colorSpace = SRGBColorSpace;
+  texture.anisotropy = 8;
+  texture.needsUpdate = true;
+  return texture;
+}
+
 /**
  * A top pick printed on a satin banner and hung as an installation in the river: a steel
  * gantry standing in the water, clips along its top bar, a weighted rod in the hem and two
@@ -96,7 +169,6 @@ export class Banner {
   private readonly direction = new Vector3();
   private readonly a = new Vector3();
   private readonly b = new Vector3();
-  private readonly up = new Vector3(0, 1, 0);
   private poster: Texture | null = null;
   private owed = 0;
   private struck = -1;
@@ -123,28 +195,7 @@ export class Banner {
     this.fabric.frustumCulled = false;
 
     const metal = steel({ ...shared, ...lights });
-    const top = POST.above;
-    const reach = HEIGHT + HEM + top;
-    const postX = WIDTH / 2 + POST.inset;
-    for (const side of [-1, 1]) {
-      const post = new Mesh(new CylinderGeometry(POST.radius, POST.radius, reach, 12), metal);
-      post.position.set(side * postX, top - reach / 2, 0);
-      const foot = new Mesh(new CylinderGeometry(0.075, 0.085, 0.014, 24), metal);
-      foot.position.set(side * postX, -HEIGHT - HEM + 0.007, 0);
-      this.group.add(post, foot);
-    }
-    const bar = new Mesh(new CylinderGeometry(0.013, 0.013, postX * 2, 12), metal);
-    bar.rotation.z = Math.PI / 2;
-    bar.position.set(0, 0.045, 0);
-    this.group.add(bar);
-    for (const c of SPEC.clips) {
-      const clip = new Mesh(new BoxGeometry(0.024, 0.052, 0.018), metal);
-      clip.position.set((c / (SPEC.columns - 1) - 0.5) * WIDTH, 0.014, 0.004);
-      this.group.add(clip);
-    }
     this.rod = new Mesh(new CylinderGeometry(0.011, 0.011, WIDTH + 0.05, 12), metal);
-    this.group.add(this.rod);
-
     const lens = new RawShaderMaterial({
       glslVersion: GLSL3,
       vertexShader: meshVertex,
@@ -161,30 +212,7 @@ export class Banner {
       blending: AdditiveBlending,
       side: DoubleSide,
     });
-    const target = new Vector3();
-    const turn = new Quaternion();
-    for (const side of [-1, 1]) {
-      const at = new Vector3(side * LAMP.across, -HEIGHT - HEM + 0.07, LAMP.ahead);
-      target.set(side * 0.18, LAMP.aim * HEIGHT, 0);
-      const aim = target.clone().sub(at).normalize();
-      turn.setFromUnitVectors(this.up, aim);
-      const housing = new Mesh(new CylinderGeometry(0.034, 0.04, 0.1, 20), metal);
-      housing.position.copy(at);
-      housing.quaternion.copy(turn);
-      const glass = new Mesh(new CylinderGeometry(0.029, 0.029, 0.004, 20), lens);
-      glass.position.copy(at).addScaledVector(aim, 0.051);
-      glass.quaternion.copy(turn);
-      const stake = new Mesh(new CylinderGeometry(0.008, 0.008, 0.07, 8), metal);
-      stake.position.copy(at).setY(at.y - 0.035);
-      // The beam is a cone with its apex at the lamp, reaching most of the way to the cloth.
-      const length = target.distanceTo(at) * 0.95;
-      const cone = new Mesh(new ConeGeometry(0.42, length, 32, 1, true), beam);
-      cone.position.copy(at).addScaledVector(aim, length / 2);
-      cone.quaternion.setFromUnitVectors(this.up, aim.clone().negate());
-      cone.renderOrder = 70;
-      this.group.add(housing, glass, stake, cone);
-    }
-    this.group.add(this.fabric);
+    this.group.add(...gantry(metal), ...uplights(metal, lens, beam), this.rod, this.fabric);
     this.materials.push(clothMaterial, metal, lens, beam);
     this.group.traverse((o) => (o.frustumCulled = false));
 
@@ -194,30 +222,18 @@ export class Banner {
     this.group.rotation.y = Math.atan2(valleyCentre(z + CAMERA.lookAhead) - valleyCentre(z), CAMERA.lookAhead);
     this.group.visible = false;
     this.group.updateMatrixWorld(true);
-    for (let i = 0; i < LAMPS; i++) {
-      const side = i === 0 ? -1 : 1;
-      this.lampPos[i]!.set(side * LAMP.across, -HEIGHT - HEM + 0.07, LAMP.ahead).applyMatrix4(this.group.matrixWorld);
-      this.lampDir[i]!.set(side * 0.18, LAMP.aim * HEIGHT, 0)
-        .applyMatrix4(this.group.matrixWorld)
-        .sub(this.lampPos[i]!)
-        .normalize();
-    }
+    ([-1, 1] as const).forEach((side, i) => {
+      const { at, target } = lampMount(side);
+      const world = this.group.matrixWorld;
+      this.lampPos[i]!.copy(at).applyMatrix4(world);
+      this.lampDir[i]!.copy(target).applyMatrix4(world).sub(this.lampPos[i]!).normalize();
+    });
     // The cloth settles under its own weight before anyone sees it.
     for (let i = 0; i < 240; i++) this.cloth.step(STEP, { gravity: 9.8, wind: [0, 0, 0], poke: null });
     this.drape();
 
-    fetch(film.image.src, { signal: this.abort.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error(`${film.image.src} failed with ${response.status}`);
-        return response.blob();
-      })
-      .then((blob) => createImageBitmap(blob, { imageOrientation: 'flipY' }))
-      .then((bitmap) => {
-        const texture = new Texture(bitmap);
-        texture.flipY = false;
-        texture.colorSpace = SRGBColorSpace;
-        texture.anisotropy = 8;
-        texture.needsUpdate = true;
+    loadPoster(film.image.src, this.abort.signal)
+      .then((texture) => {
         this.poster = texture;
         uPoster.value = texture;
       })
@@ -314,7 +330,7 @@ export class Banner {
     this.a.set(p[first * 3]!, p[first * 3 + 1]!, p[first * 3 + 2]!);
     this.b.set(p[last * 3]!, p[last * 3 + 1]!, p[last * 3 + 2]!);
     this.rod.position.copy(this.a).add(this.b).multiplyScalar(0.5);
-    this.rod.quaternion.setFromUnitVectors(this.up, this.b.sub(this.a).normalize());
+    this.rod.quaternion.setFromUnitVectors(UP, this.b.sub(this.a).normalize());
   }
 
   dispose(): void {

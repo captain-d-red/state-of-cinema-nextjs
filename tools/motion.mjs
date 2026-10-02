@@ -1,6 +1,6 @@
 /**
  * Films the arrivals with real input and lays the frames out as a contact sheet, so the
- * rise of a figure and the turn of a glass wall can be judged frame by frame.
+ * rise of a figure and the arrival of a banner can be judged frame by frame.
  *
  *   node tools/motion.mjs [url]
  */
@@ -44,5 +44,5 @@ async function arrive(name, presses) {
 }
 
 await arrive('figure', 1);
-await arrive('wall', 4);
+await arrive('banner', 4);
 await browser.close();

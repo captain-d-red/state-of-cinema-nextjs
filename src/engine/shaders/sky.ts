@@ -1,4 +1,5 @@
 import { glsl, hash, header } from './common';
+import { film } from './film';
 import { look } from './terrain';
 
 /** A dome that travels with the eye, so the sky has no edge however far the flight goes. */
@@ -17,10 +18,15 @@ void main() {
 /**
  * The sky's colour with stars in it. Directions are binned on a grid over longitude and
  * latitude, about one star in thirty cells is lit, and each twinkles on its own slow beat.
+ *
+ * The glow low on the horizon is seen through the same coating as the hills, its thickness
+ * wandering slowly across the sky and rising with height, so the light between the ridges
+ * carries the hills' colours in a fainter veil rather than standing apart as a flat grey.
  */
 export const skyFragment = glsl`${header}
 ${hash}
 ${look}
+${film}
 uniform float uTime;
 in vec3 vDir;
 out vec4 fragColor;
@@ -37,7 +43,13 @@ void main() {
   float star = lit * (1.0 - smoothstep(0.0, 0.22, length(at * vec2(1.0, STAR_CELLS.y / STAR_CELLS.x * 2.9))));
   float twinkle = 0.55 + 0.45 * sin(uTime * (0.6 + hash12(cell + 5.0) * 1.8) + hash12(cell + 9.0) * 6.2831853);
   float high = smoothstep(0.02, 0.3, dir.y);
-  vec3 colour = skyColour(dir) + mix(uGlow, vec3(1.0), 0.75) * star * twinkle * high * 0.35 * (1.0 - uTunnel);
+  float azimuth = atan(dir.x, -dir.z);
+  float opd = uFilm.x + uFilm.y * (0.7 * sin(azimuth * 2.3 + uTime * 0.03) + 2.4 * dir.y);
+  vec3 series = filmColour(opd, 1.0);
+  series = mix(series, vec3(dot(series, vec3(0.2126, 0.7152, 0.0722))), 0.3) + 0.08;
+  vec3 veil = mix(vec3(1.0), series, uFilm.z * 0.6);
+  vec3 colour = uBackground + (skyColour(dir) - uBackground) * veil;
+  colour += mix(uGlow, vec3(1.0), 0.75) * star * twinkle * high * 0.35 * (1.0 - uTunnel);
   fragColor = vec4(colour, 1.0);
 }
 `;

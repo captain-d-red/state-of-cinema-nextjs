@@ -1,6 +1,6 @@
 /**
  * Drives real input through each interaction and saves a shot of the response: a pointer
- * sweep and a click on the dunes, a sweep through a figure, a sweep across a glass wall, a
+ * sweep and a click on the river, a sweep through a figure, a sweep across a banner, a
  * hard flick for the lens kick, and the trailer player.
  *
  *   node tools/interact.mjs [url] [--size laptop]
@@ -59,7 +59,7 @@ await shot('figure');
 await toStation(4);
 await page.mouse.move(W / 2, H * 0.3);
 await sweep(620, 840, 300, 30);
-await shot('glass');
+await shot('banner');
 
 // A hard flick, caught a beat later while the lens is still kicked.
 for (let i = 0; i < 6; i++) {
