@@ -148,6 +148,6 @@ void main() {
   vec3 v = normalize(uCamPos - vWorld);
   float edge = pow(abs(dot(normalize(vNormal), v)), 1.6);
   float fade = smoothstep(0.0, 0.9, vAlong) * smoothstep(1.0, 0.85, vAlong);
-  fragColor = vec4(vec3(1.0, 0.78, 0.56) * edge * fade * 0.035 * uLamp, 1.0);
+  fragColor = vec4(vec3(1.0, 0.78, 0.56) * edge * fade * 0.085 * uLamp, 1.0);
 }
 `;

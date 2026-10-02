@@ -230,6 +230,11 @@ export class Banner {
     return this.poster !== null;
   }
 
+  /** Where the uplights stand in the world, and how bright they are, for the water they light. */
+  get lamps(): { readonly positions: readonly Vector3[]; readonly power: number } {
+    return { positions: this.lampPos, power: this.lamp.value };
+  }
+
   /** The print, once it has arrived, so the engine can upload it before the banner is first seen. */
   get texture(): Texture | null {
     return this.poster;

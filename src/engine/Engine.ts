@@ -253,6 +253,7 @@ export class Engine {
     this.numbers.update(z, dt, this.reducedMotion);
     for (const banner of this.banners)
       banner.update(time, z, this.speed, this.camera, this.cursor.value, dt, this.reducedMotion);
+    this.lightWater();
     // Picking a film is navigation, so the reel reads the raw pointer even under reduced motion,
     // where the cursor that pushes particles and presses the banners is held still.
     this.pick.set(input.pointerX, input.pointerY, input.pointerActive ? 1 : 0);
@@ -273,6 +274,18 @@ export class Engine {
       loaded,
       started: this.startTime !== null,
     };
+  }
+
+  /** Hands the brightest banner's uplights to the water, which only ever has one pair near it. */
+  private lightWater(): void {
+    const u = this.valley.uniforms;
+    u.uLampPower.value = 0;
+    for (const banner of this.banners) {
+      const { positions, power } = banner.lamps;
+      if (power <= u.uLampPower.value) continue;
+      u.uLampPower.value = power;
+      for (let i = 0; i < positions.length; i++) u.uLampPos.value[i]!.copy(positions[i]!);
+    }
   }
 
   /**

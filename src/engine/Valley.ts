@@ -53,6 +53,9 @@ export type ValleyUniforms = {
   /** The film on the water and the glass, as optical path difference, its spread and its strength. */
   readonly uFilm: IUniform<Vector3>;
   readonly uFilmLut: IUniform<Texture>;
+  /** The uplights of the nearest banner, which light the water around their feet. */
+  readonly uLampPos: IUniform<Vector3[]>;
+  readonly uLampPower: IUniform<number>;
 };
 
 /** Dots per world unit along each axis, and the square they cover around the camera. */
@@ -167,6 +170,8 @@ export class Valley {
       uTunnel: { value: 0 },
       uFilm: { value: new Vector3() },
       uFilmLut: { value: filmTexture() },
+      uLampPos: { value: [new Vector3(), new Vector3()] },
+      uLampPower: { value: 0 },
     };
     const shared: Record<string, IUniform> = this.uniforms;
 

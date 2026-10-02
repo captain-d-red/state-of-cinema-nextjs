@@ -45,6 +45,9 @@ uniform vec4 uWakeRect;
 uniform vec2 uWakeTexel;
 /** How far the present lies between the wake's last two steps. */
 uniform float uWakeBlend;
+/** The nearest banner's two uplights. */
+uniform vec3 uLampPos[2];
+uniform float uLampPower;
 in vec3 vWorld;
 out vec4 fragColor;
 
@@ -106,8 +109,18 @@ void main() {
   // The light ahead, glittering off every ripple that tilts toward it. The film only half
   // colours the glints, so the path stays a light on the water rather than a neon line.
   vec3 h = normalize(LIGHT + v);
-  float glint = pow(max(dot(n, h), 0.0), 700.0) * 1.6 + pow(max(dot(n, h), 0.0), 60.0) * 0.025;
-  lit += mix(uGlow, vec3(1.0), 0.6) * mix(vec3(1.0), sheen, 0.5) * min(glint, 2.5) * smoothstep(0.5, 1.0, uIntro);
+  float glint = pow(max(dot(n, h), 0.0), 700.0) * 1.0 + pow(max(dot(n, h), 0.0), 60.0) * 0.02;
+  lit += mix(uGlow, vec3(1.0), 0.45) * mix(vec3(1.0), sheen, 0.5) * min(glint, 1.4) * smoothstep(0.5, 1.0, uIntro);
+  // Each uplight throws a warm pool on the water around its stake, and its bright head is
+  // reflected in every ripple that tilts toward it, the way a lamp at the water's edge sparkles.
+  for (int i = 0; i < 2; i++) {
+    vec3 to = uLampPos[i] - vWorld;
+    float spread = dot(to.xz, to.xz);
+    vec3 l = to * inversesqrt(dot(to, to));
+    float head = pow(max(dot(n, normalize(l + v)), 0.0), 260.0) * 3.0 / (1.0 + dot(to, to) * 4.0);
+    lit += vec3(1.0, 0.78, 0.56) * (exp(-spread / 0.05) * 0.16 + head) * uLampPower;
+  }
+
   // The haze over open water is thinner than over the sand, so the mirror stays clear.
   lit += hazeTo(vWorld, 1.0 - fog) * 0.5;
   lit = mix(lit, mix(fogColour(-v, length(toEye)), uBackground, uTunnel), max(fog, uTunnel));
