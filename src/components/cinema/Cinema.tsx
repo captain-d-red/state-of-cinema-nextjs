@@ -57,7 +57,9 @@ export function Cinema() {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const lenis = new Lenis({ autoRaf: false, lerp: reducedMotion ? 1 : 0.08, wheelMultiplier: 0.9 });
     lenisRef.current = lenis;
-    const pointer = { x: 0, y: 0, active: false };
+    const pointer = { x: 0, y: 0, active: false, down: false };
+    /** Whether the press now ending pinched the cloth, so its click does not also drop a ring. */
+    let pinched = false;
     /** Taps and clicks since the last frame, in normalised device coordinates. */
     let taps: { x: number; y: number }[] = [];
     let engine: Engine | null = null;
@@ -91,9 +93,16 @@ export function Cinema() {
       if (e.target !== canvas) return;
       locate(e);
       pointer.active = true;
+      // A mouse or pen press can pinch the cloth. A finger's press scrolls, so it never does.
+      pointer.down = e.pointerType !== 'touch' && e.button === 0;
+      pinched = false;
     };
     // A click fires for a tap but never for a swipe, so only a deliberate press sends a ring.
     const onClick = (e: MouseEvent) => {
+      if (pinched) {
+        pinched = false;
+        return;
+      }
       if (hovered !== null) {
         setPlaying(catalogue.films[hovered] ?? null);
         return;
@@ -102,10 +111,12 @@ export function Cinema() {
       taps.push({ x: ((e.clientX - box.left) / box.width) * 2 - 1, y: 1 - ((e.clientY - box.top) / box.height) * 2 });
     };
     const onPointerUp = (e: PointerEvent) => {
+      pointer.down = false;
       if (e.pointerType === 'touch') pointer.active = false;
     };
     const onPointerLeave = () => {
       pointer.active = false;
+      pointer.down = false;
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.altKey || e.metaKey || e.ctrlKey) return;
@@ -128,12 +139,14 @@ export function Cinema() {
         pointerX: pointer.x,
         pointerY: pointer.y,
         pointerActive: pointer.active,
+        pointerDown: pointer.down,
         taps,
       });
+      if (frame.grip === 'held') pinched = true;
       taps = [];
       hovered = frame.hoveredFilm;
       // The reticle reads the scene under a mouse at the opening, in the stage's own pixels.
-      const aiming = shown === 0 && pointer.active && hovered === null;
+      const aiming = shown === 0 && pointer.active && hovered === null && frame.grip === 'none';
       reticleRef.current?.update(
         aiming
           ? { x: (pointer.x * 0.5 + 0.5) * canvas.clientWidth, y: (0.5 - pointer.y * 0.5) * canvas.clientHeight }
@@ -150,7 +163,8 @@ export function Cinema() {
         }
       }
       soundRef.current?.update(frame);
-      canvas.style.cursor = hovered !== null ? 'pointer' : '';
+      canvas.style.cursor =
+        frame.grip === 'held' ? 'grabbing' : frame.grip === 'over' ? 'grab' : hovered !== null ? 'pointer' : '';
       if (frame.station !== shown) {
         shown = frame.station;
         setStation(frame.station);

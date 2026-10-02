@@ -61,6 +61,8 @@ export interface Poke {
 /** Share of velocity kept each step, the cloth's loss to the air and its own weave. */
 const DAMPING = 0.988;
 const ITERATIONS = 10;
+/** Share of the cloth's motion taken away when a pinch lets go. */
+const RELEASE_CALM = 0.65;
 /** How readily each kind of edge returns to its rest length per iteration. */
 const STIFFNESS = { structural: 1, shear: 0.5, bend: 0.08 } as const;
 /** Couples the wind's push to the cloth, in units of acceleration per unit of normal airspeed. */
@@ -86,6 +88,8 @@ export class Cloth {
   private readonly stiffness: Float32Array;
   private readonly normal = new Float32Array(3);
   private clock = 0;
+  /** The particle held in a pinch, and its own inverse mass to give back when it is let go. */
+  private pinch: { readonly index: number; readonly inverseMass: number } | null = null;
 
   constructor(readonly spec: ClothSpec) {
     const { columns, rows, width, height, clips, hem, hemMass, gather } = spec;
@@ -163,6 +167,76 @@ export class Cloth {
     this.positions[k] = this.previous[k] = x;
     this.positions[k + 1] = this.previous[k + 1] = y;
     this.positions[k + 2] = this.previous[k + 2] = z;
+  }
+
+  /**
+   * The particle nearest a ray, if one lies within `reach` of it, and how far along the ray it
+   * is, for taking hold of the cloth where the pointer presses.
+   */
+  nearest(
+    origin: readonly [number, number, number],
+    direction: readonly [number, number, number],
+    reach: number,
+  ): { readonly index: number; readonly along: number } | null {
+    const p = this.positions;
+    let best: { index: number; along: number } | null = null;
+    let closest = reach;
+    for (let i = 0; i < this.inverseMass.length; i++) {
+      if (this.inverseMass[i] === 0) continue;
+      const k = i * 3;
+      const ox = p[k]! - origin[0];
+      const oy = p[k + 1]! - origin[1];
+      const oz = p[k + 2]! - origin[2];
+      const along = ox * direction[0] + oy * direction[1] + oz * direction[2];
+      const off = Math.hypot(ox - along * direction[0], oy - along * direction[1], oz - along * direction[2]);
+      if (off < closest) {
+        closest = off;
+        best = { index: i, along };
+      }
+    }
+    return best;
+  }
+
+  /** Takes hold of a particle, the way fingers pinch cloth. It moves only where it is held. */
+  grab(index: number): void {
+    this.release();
+    this.pinch = { index, inverseMass: this.inverseMass[index]! };
+    this.inverseMass[index] = 0;
+  }
+
+  /**
+   * Moves the pinched particle to `x, y, z`. Its last position trails one step behind, so when
+   * it is let go it carries the hand's speed and the cloth swings on from the throw.
+   */
+  hold(x: number, y: number, z: number): void {
+    if (!this.pinch) return;
+    const k = this.pinch.index * 3;
+    const p = this.positions;
+    this.previous[k] = p[k]!;
+    this.previous[k + 1] = p[k + 1]!;
+    this.previous[k + 2] = p[k + 2]!;
+    p[k] = x;
+    p[k + 1] = y;
+    p[k + 2] = z;
+  }
+
+  /**
+   * Lets go of the pinch, giving the particle back its mass. Fingers open slowly rather than
+   * vanishing, so the cloth keeps a third of its motion and settles from there instead of
+   * snapping back with all the stretch the pinch stored in it.
+   */
+  release(): void {
+    if (!this.pinch) return;
+    this.inverseMass[this.pinch.index] = this.pinch.inverseMass;
+    this.pinch = null;
+    for (let i = 0; i < this.positions.length; i++) {
+      this.previous[i] = this.previous[i]! + (this.positions[i]! - this.previous[i]!) * RELEASE_CALM;
+    }
+  }
+
+  /** The particle held in a pinch, or null. */
+  get held(): number | null {
+    return this.pinch?.index ?? null;
   }
 
   /** Where every particle was hung, as x, y and z in banner space, before any force moved it. */

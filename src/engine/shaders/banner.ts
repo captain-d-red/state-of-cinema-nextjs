@@ -29,6 +29,21 @@ vec3 lampLight(int i, vec3 p, out vec3 l) {
 `;
 
 /**
+ * A banner dissolves as the camera passes through it: wherever a grain of noise falls below the
+ * dissolve, the surface is gone, and a thin edge in the station's light runs ahead of the hole.
+ */
+const dissolve = glsl`
+uniform float uDissolve;
+
+/** Light along the burning edge, or a discard where the surface has already gone. */
+vec3 burn(float grain) {
+  if (grain < uDissolve) discard;
+  float edge = (1.0 - smoothstep(0.0, 0.07, grain - uDissolve)) * step(0.001, uDissolve);
+  return mix(uGlow, vec3(1.0), 0.4) * edge * 2.4;
+}
+`;
+
+/**
  * A poster printed on satin and hung under two lamps. The print's colour is lit by the lamps
  * with a little wrap, the way light creeps around a soft fold; the weave scatters a sheen that
  * brightens at grazing angles; the night and the station's light fill in from around it; and
@@ -38,6 +53,7 @@ export const clothFragment = glsl`${header}
 ${field}
 ${look}
 ${lamps}
+${dissolve}
 uniform sampler2D uPoster;
 in vec3 vWorld;
 in vec3 vNormal;
@@ -75,6 +91,8 @@ void main() {
   float through = max(dot(-n, LIGHT), 0.0);
   lit += print * uGlow * through * 0.12;
 
+  // The dissolve is pinned to the cloth's own weave, so the holes travel with the fabric.
+  lit += burn(valueNoise(vUv * vec2(14.0, 21.0)) * 0.7 + valueNoise(vUv * vec2(41.0, 62.0)) * 0.3);
   float fog = fogAt(vWorld.xz);
   fragColor = vec4(mix(lit, fogColour(-v, distance(uCamPos, vWorld)), fog * 0.85), 1.0);
 }
@@ -85,6 +103,7 @@ export const steelFragment = glsl`${header}
 ${field}
 ${look}
 ${lamps}
+${dissolve}
 in vec3 vWorld;
 in vec3 vNormal;
 in vec2 vUv;
@@ -102,6 +121,7 @@ void main() {
     lit += light * (max(dot(n, l), 0.0) * 0.03 + pow(max(dot(r, l), 0.0), 60.0) * 0.9);
   }
   lit += mix(uGlow, vec3(1.0), 0.5) * pow(max(dot(r, LIGHT), 0.0), 40.0) * 0.4;
+  lit += burn(valueNoise(vWorld.xy * 24.0 + vWorld.z * 7.0));
   fragColor = vec4(mix(lit, fogColour(-v, distance(uCamPos, vWorld)), fogAt(vWorld.xz) * 0.85), 1.0);
 }
 `;
@@ -109,8 +129,10 @@ void main() {
 /** The glowing front of a lamp, bright enough to bloom. */
 export const lensFragment = glsl`${header}
 uniform float uLamp;
+uniform float uDissolve;
 out vec4 fragColor;
 void main() {
+  if (uDissolve > 0.6) discard;
   fragColor = vec4(vec3(1.0, 0.78, 0.56) * (0.04 + 7.0 * uLamp), 1.0);
 }
 `;

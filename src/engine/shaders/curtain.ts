@@ -66,15 +66,17 @@ void main() {
 
   vec2 off = (print - uPointer.xy) * vec2(2.2, 1.0);
   float near = uPointer.z * exp(-dot(off, off) * 9.0);
-  // The foil's colour drifts on its own: the film's thickness wanders in two slow noise fields
-  // flowing in different directions, over a sweep that itself rocks gently across the print,
-  // so the series pools and slides through the letters like oil on water.
+  // The foil's colour cycles on its own. The film's thickness swings through a whole stretch
+  // of the series every sixteen seconds, in a wave that travels along the lines, and two noise
+  // fields flowing in different directions pool and stretch it, so the colours slide through
+  // the letters like oil turning on water and never come back the same.
   float t = uTime;
-  float sweep = dot(print - 0.5, vec2(1.0, 0.45)) * (1.7 + 0.25 * sin(t * 0.09)) + 0.35 * sin(t * 0.13);
+  float cycle = sin(t * 6.2831853 / 16.0 - print.x * 2.4 + print.y * 0.8);
+  float sweep = dot(print - 0.5, vec2(1.0, 0.45)) * 1.6;
   float flow =
-    0.42 * gnoise(print * vec2(2.6, 1.7) + vec2(t * 0.045, -t * 0.03)) +
-    0.22 * gnoise(print * vec2(6.1, 4.3) - vec2(t * 0.07, t * 0.05));
-  float opd = uFilm.x + uFilm.y * (sweep + flow) + 220.0 * near;
+    0.45 * gnoise(print * vec2(2.4, 1.6) + vec2(t * 0.11, -t * 0.08)) +
+    0.25 * gnoise(print * vec2(5.5, 3.9) - vec2(t * 0.17, t * 0.12));
+  float opd = uFilm.x + uFilm.y * (sweep + flow) + 280.0 * cycle + 220.0 * near;
   vec3 series = filmColour(opd, cosI);
   series = mix(series, vec3(luminance(series)), 0.15);
   vec3 around = skyColour(reflect(-v, n)) * 1.4 + uGlow * 0.05;

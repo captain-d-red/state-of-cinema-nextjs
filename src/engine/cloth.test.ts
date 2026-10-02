@@ -71,6 +71,27 @@ describe('Cloth', () => {
     expect(depth).toBeGreaterThan(0.03);
   });
 
+  it('follows a pinch while it is held and swings free once it is let go', () => {
+    const cloth = new Cloth(SPEC);
+    settle(cloth, STILL, 240);
+    const centre = 6 * SPEC.columns + 4;
+    const [x, y] = at(cloth, centre);
+    const pinch = cloth.nearest([x!, y!, 2], [0, 0, -1], 0.1);
+    expect(pinch?.index).toBe(centre);
+    cloth.grab(centre);
+    for (let i = 0; i < 120; i++) {
+      cloth.hold(x!, y!, Math.min(0.4, i * 0.01));
+      cloth.step(1 / 120, STILL);
+    }
+    expect(at(cloth, centre)[2]).toBeCloseTo(0.4, 6);
+    // The cloth around the pinch is drawn out with it.
+    expect(at(cloth, centre + 1)[2]!).toBeGreaterThan(0.2);
+    cloth.release();
+    expect(cloth.held).toBeNull();
+    settle(cloth, STILL, 1200);
+    expect(Math.abs(at(cloth, centre)[2]!)).toBeLessThan(0.02);
+  });
+
   it('billows downwind', () => {
     const cloth = new Cloth(SPEC);
     settle(cloth, { ...STILL, wind: [0, 0, 2] }, 240);

@@ -21,6 +21,7 @@ import { hexToLinear, linearSrgbToOklab, mixOklch, type Vec3 } from '@/lib/color
 import { clamp, damp, lerp, smoothstep } from '@/lib/math';
 import { Banner } from './Banner';
 import { Curtain } from './Curtain';
+import type { Grip } from './hand';
 import { createFullscreenGeometry } from './gl';
 import { Lens } from './Lens';
 import { Mirror } from './Mirror';
@@ -49,6 +50,8 @@ export interface EngineInput {
   readonly pointerX: number;
   readonly pointerY: number;
   readonly pointerActive: boolean;
+  /** Whether the pointer's button is held, for pinching the cloth. */
+  readonly pointerDown: boolean;
   /** Taps and clicks since the last frame, in normalised device coordinates, each one a ring sent across the dunes. */
   readonly taps: readonly { readonly x: number; readonly y: number }[];
 }
@@ -74,6 +77,8 @@ export interface EngineFrame {
   readonly splashes: number;
   /** How fast the pointer is drawing through the water, in world units a second. */
   readonly stir: number;
+  /** What the pointer is doing to the cloth: nothing, hovering it, or holding it. */
+  readonly grip: Grip;
 }
 
 /** Keeps the drawing buffer near 4K worth of pixels however dense the display is. */
@@ -93,15 +98,6 @@ const KICK = { roll: 0.12, fov: 24, gain: 0.18 } as const;
  * curtain starts to open a little in, and the camera holds until it is open.
  */
 const OPENING = { start: 0.03, hold: 0.3 } as const;
-/**
- * The camera rises over each banner as it flies on, the way a drone clears a frame, so no
- * installation ever has to move out of the way. The rise is a bell centred on the banner,
- * nothing at the station that frames it five and a half units back, and high enough at the
- * banner to clear its rail.
- *
- *   height(z) = 1.2 + 1.5 · e^(−((z − banner) / 1.9)²)
- */
-const LIFT = { height: 1.5, width: 1.9 } as const;
 /** Roll per unit of lateral acceleration, and the most the camera may lean into a bend, in radians. */
 const BANK = { gain: 0.012, max: 0.09 } as const;
 
@@ -115,8 +111,6 @@ export class Engine {
   private readonly valley: Valley;
   private readonly numbers: Numbers;
   private readonly banners: Banner[];
-  /** Where each banner stands along the flight, for the camera to rise over. */
-  private readonly passes: number[];
   private readonly curtain: Curtain;
   private readonly reel: Reel;
   /** Pointer in normalised device coordinates and how present it is, shared with the figures. */
@@ -152,6 +146,7 @@ export class Engine {
   private lastHit: Vector3 | null = null;
   private focus: number | null = null;
   private splashes = 0;
+  private grip: Grip = 'none';
   private stir = 0;
   /** The pointer's path over the water this frame, from where it was to where it is. */
   private readonly path: [number, number, number, number] = [0, 0, 0, 0];
@@ -198,7 +193,6 @@ export class Engine {
       s.kind === 'pick' ? [new Banner(s.film, stationZ(i), this.valley.uniforms, onError)] : [],
     );
     for (const banner of this.banners) this.scene.add(banner.group);
-    this.passes = story.flatMap((s, i) => (s.kind === 'pick' ? [stationZ(i)] : []));
     this.curtain = new Curtain(cameraZ(0), this.valley.uniforms, curtain, fontFamily);
     this.scene.add(this.curtain.group);
     this.reel = new Reel(catalogue.films.length, this.valley.uniforms.uGlow, this.atlas);
@@ -290,22 +284,29 @@ export class Engine {
     u.uTunnel.value = tunnel;
     this.valley.update(this.renderer, z, dt, this.path, this.hover);
     this.numbers.update(z, dt, this.reducedMotion);
-    for (const banner of this.banners)
-      banner.update(time, z, this.speed, this.camera, this.cursor.value, dt, this.reducedMotion);
-    this.curtain.update(
-      time,
-      z,
-      smoothstep(OPENING.start, OPENING.hold, opening),
-      intro,
-      this.camera,
-      this.cursor.value,
-      dt,
-      this.reducedMotion,
-    );
-    this.lightWater();
     // Picking a film is navigation, so the reel reads the raw pointer even under reduced motion,
-    // where the cursor that pushes particles and presses the banners is held still.
+    // where the cursor that pushes particles and presses the banners is held still. The hand
+    // that pinches the cloth reads the raw pointer too, so the cloth stays under the fingers.
     this.pick.set(input.pointerX, input.pointerY, input.pointerActive ? 1 : 0);
+    const hand = { pointer: this.pick, down: input.pointerDown };
+    const grips = this.banners.map((banner) =>
+      banner.update(time, z, this.speed, this.camera, this.cursor.value, hand, dt, this.reducedMotion),
+    );
+    grips.push(
+      this.curtain.update(
+        time,
+        z,
+        smoothstep(OPENING.start, OPENING.hold, opening),
+        intro,
+        this.camera,
+        this.cursor.value,
+        hand,
+        dt,
+        this.reducedMotion,
+      ),
+    );
+    this.grip = grips.includes('held') ? 'held' : grips.includes('over') ? 'over' : 'none';
+    this.lightWater();
     const hoveredFilm = this.reel.update(time, this.camera, this.pick, tunnel, dt, this.reducedMotion);
 
     // The reflection is lit from the mirrored eye, so view-dependent light lands where it would in water.
@@ -326,6 +327,7 @@ export class Engine {
       curtain: this.curtain.openness,
       splashes: this.splashes,
       stir: this.stir,
+      grip: this.grip,
     };
   }
 
@@ -385,14 +387,12 @@ export class Engine {
     // The camera rides the valley's centre line and looks down it to where the line will be.
     const here = valleyCentre(z);
     const ahead = valleyCentre(z - CAMERA.lookAhead);
-    const lift = this.passes.reduce((sum, at) => sum + LIFT.height * Math.exp(-(((z - at) / LIFT.width) ** 2)), 0);
-    this.camera.position.set(here + this.orbit.x * 0.22, CAMERA.height + drop + lift + this.orbit.y * 0.1, z);
+    this.camera.position.set(here + this.orbit.x * 0.22, CAMERA.height + drop + this.orbit.y * 0.1, z);
     const tall = this.aspect < 0.8;
     const opening = smoothstep(cameraZ(1), cameraZ(0), z);
     const river = tall ? CAMERA.lookHeightTall : CAMERA.lookHeight;
     const level = tall ? CAMERA.openingLookHeightTall : CAMERA.openingLookHeight;
-    // Rising, the eye still looks down the river, tipping its gaze by only half the climb.
-    const lookY = lerp(lerp(river, level, opening * opening) + lift * 0.5, CAMERA.height, tunnel);
+    const lookY = lerp(lerp(river, level, opening * opening), CAMERA.height, tunnel);
     // The tunnel is wound around the camera's own axis, so the view turns to look straight down
     // it, and its vanishing point sits in the middle of the frame instead of off toward the bend.
     const lookX = lerp(ahead + this.orbit.x * 0.06, this.camera.position.x, tunnel);

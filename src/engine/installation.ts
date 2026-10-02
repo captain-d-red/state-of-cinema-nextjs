@@ -29,7 +29,10 @@ export interface Materials {
   readonly beam: RawShaderMaterial;
 }
 
-/** The three materials, sharing the scene's uniforms and the installation's lamps. */
+/**
+ * The three materials, sharing the scene's uniforms and the installation's lamps. `shared`
+ * must carry `uDissolve`, which the steel and the lens read as the installation dissolves.
+ */
 export function materials(
   shared: Record<string, IUniform>,
   lamp: IUniform<number>,
@@ -46,7 +49,7 @@ export function materials(
       glslVersion: GLSL3,
       vertexShader: meshVertex,
       fragmentShader: lensFragment,
-      uniforms: { uLamp: lamp },
+      uniforms: { uLamp: lamp, uDissolve: shared.uDissolve! },
     }),
     beam: new RawShaderMaterial({
       glslVersion: GLSL3,

@@ -15,6 +15,7 @@ import {
 } from 'three';
 import { clamp, damp } from '@/lib/math';
 import { Cloth, type ClothSpec, type Poke } from './cloth';
+import { Hand, type Grip, type HandInput } from './hand';
 import { Strike, clip, materials, placeLamps, posts, rail, uplights, type Mount } from './installation';
 import { printCurtain, type CurtainCopy } from './print';
 import { LAMPS } from './shaders/banner';
@@ -91,6 +92,7 @@ export class Curtain {
   private readonly inverse = new Matrix4();
   private readonly origin = new Vector3();
   private readonly direction = new Vector3();
+  private readonly hand = new Hand();
   private open = 0;
   private owed = 0;
 
@@ -98,7 +100,8 @@ export class Curtain {
     this.z = openingCameraZ - AHEAD;
     this.print = printCurtain(copy, fontFamily);
     const lights = { uLampPos: { value: this.lampPos }, uLampDir: { value: this.lampDir }, uLamp: this.strike.power };
-    const shared: Record<string, IUniform> = { ...valley, ...lights };
+    // The curtain opens rather than dissolving, so its steel never dissolves.
+    const shared: Record<string, IUniform> = { ...valley, ...lights, uDissolve: { value: 0 } };
     const kit = materials(shared, this.strike.power, valley.uCamPos);
 
     this.drapes = ([-1, 1] as const).map((side) => {
@@ -164,8 +167,8 @@ export class Curtain {
 
   /**
    * Opens the curtain to `wanted`, from zero closed to one gathered at the posts, strikes the
-   * footlights with the scene's intro, and steps both drapes. `pointer` is in normalised device
-   * coordinates with its presence in z.
+   * footlights with the scene's intro, lets the hand pinch either drape, and steps both.
+   * `pointer` is the eased pointer that presses the cloth, and `hand` the raw one that holds it.
    */
   update(
     time: number,
@@ -174,14 +177,16 @@ export class Curtain {
     intro: number,
     camera: Camera,
     pointer: Vector3,
+    hand: HandInput,
     dt: number,
     still: boolean,
-  ) {
+  ): Grip {
     const ahead = cameraZ - this.z;
     this.group.visible = ahead > 0.05;
     if (!this.group.visible) {
       this.strike.off();
-      return;
+      for (const drape of this.drapes) drape.cloth.release();
+      return 'none';
     }
     this.strike.update(intro > 0.55 ? 1 : 0, time, still);
     this.open = still ? wanted : this.open + clamp(wanted - this.open, -GLIDE * dt, GLIDE * dt);
@@ -192,8 +197,13 @@ export class Curtain {
         for (let i = 0; i < 4; i++) drape.cloth.step(STEP, { gravity: 9.8, wind: [0, 0, 0], poke: null });
         this.drape(drape);
       }
-      return;
+      return 'none';
     }
+    const grip = this.hand.update(
+      camera,
+      hand,
+      this.drapes.map(({ cloth, mesh }) => ({ cloth, space: mesh, halfWidth: DRAPE / 2, height: HEIGHT })),
+    );
 
     // A faint draught along the river, far softer than the banners feel, since a heavy curtain
     // hardly stirs, plus the air the camera pushes ahead of itself as it nears.
@@ -203,10 +213,11 @@ export class Curtain {
     const steps = Math.floor(this.owed / STEP);
     this.owed -= steps * STEP;
     for (const drape of this.drapes) {
-      const poke = this.pokeFrom(drape, camera, pointer);
+      const poke = grip === 'held' ? null : this.pokeFrom(drape, camera, pointer);
       for (let i = 0; i < steps; i++) drape.cloth.step(STEP, { gravity: 9.8, wind, poke });
       this.drape(drape);
     }
+    return grip;
   }
 
   /** Places a drape's hooks along the rail for an opening from zero, closed, to one, gathered at its post. */

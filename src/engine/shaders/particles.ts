@@ -32,11 +32,12 @@ vec4 beadColour(vec2 coord, float alpha) {
  *     ·     ◉     ·         radius = 2.05 ± a little scatter
  *        ·  ·  ·
  *
- * The pointer is a slow vortex in the starfield: on screen, stars near it are turned about it
- * by an angle that dies away with distance, so the helix flows through a twist that follows
- * the hand. A click sends a ring out from where it lands, pushing the stars aside as it passes.
+ * The stars keep clear of the pointer: on screen, each one near it is pushed straight away from
+ * it, furthest at its centre, so the cursor opens a clear hole in the helix that follows the
+ * hand and closes behind it. A click sends a ring out from where it lands, pushing the stars
+ * aside as it passes.
  *
- *   turn = 1.6 · e^(−d²/r²)          pulse = e^(−(d − 1.3·age)²/0.012) · (1 − age/1.4)
+ *   push = 0.12 · e^(−d²/0.05)          pulse = e^(−(d − 1.3·age)²/0.012) · (1 − age/1.4)
  */
 export const dotsVertex = glsl`${header}
 ${field}
@@ -73,9 +74,9 @@ void main() {
   vec2 square = vec2(uAspect, 1.0);
   vec2 ndc = clip.xy / max(clip.w, 1e-4);
   vec2 off = (ndc - uCursor.xy) * square;
-  float pull = exp(-dot(off, off) / 0.12) * uCursor.z * uTunnel;
-  float turn = 1.6 * pull;
-  off = mat2(cos(turn), sin(turn), -sin(turn), cos(turn)) * off * (1.0 - 0.2 * pull);
+  float near = length(off);
+  float push = 0.12 * exp(-near * near / 0.05) * uCursor.z * uTunnel;
+  off += off / max(near, 1e-4) * push;
   ndc = uCursor.xy + off / square;
   vec2 fromPulse = (ndc - uPulse.xy) * square;
   float d = length(fromPulse);
@@ -87,7 +88,7 @@ void main() {
 
   // Inside the tunnel a band of light runs away from the camera every four seconds.
   float band = smoothstep(4.0, 0.0, abs(xz.y - (uCamPos.z - mod(uTime, 4.0) * 18.0))) * 0.8 * uTunnel;
-  gl_PointSize = 2.0 * uPointScale * mix(0.44, 1.56, aSeed) * (1.0 + band + 0.8 * pull + 1.2 * pulse);
+  gl_PointSize = 2.0 * uPointScale * mix(0.44, 1.56, aSeed) * (1.0 + band + 1.2 * pulse);
   float tunnel = clamp(1.0 + view.z / 60.0, 0.0, 1.0) * (1.0 + band * 0.5);
   vAlpha = tunnel * uTunnel;
 }

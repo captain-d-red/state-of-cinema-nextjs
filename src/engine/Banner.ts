@@ -18,6 +18,7 @@ import {
 import type { Film } from '@/data/catalogue';
 import { smoothstep } from '@/lib/math';
 import { Cloth, type ClothSpec, type Poke } from './cloth';
+import { Hand, type Grip, type HandInput } from './hand';
 import { Strike, UP, clip, materials, placeLamps, posts, rail, uplights, type Mount } from './installation';
 import { meshVertex } from './shaders/common';
 import { LAMPS, clothFragment } from './shaders/banner';
@@ -26,7 +27,7 @@ import { CAMERA, RIVER, valleyCentre } from './world';
 
 /**
  * The print is the poster's own two by three, hung with its hem a little above the water. The
- * camera rises over each banner as it flies on, so the installation never has to move.
+ * camera flies straight on through each banner, which dissolves away just before it arrives.
  *
  *     ┃━━━━●━━━●━━━●━━━●━━━●━━━━┃   rail on two posts, six clips
  *     ┃ ┌───────────────────────┐ ┃
@@ -85,6 +86,8 @@ export class Banner {
   private readonly fabric: Mesh<PlaneGeometry, RawShaderMaterial>;
   private readonly rod: Mesh<CylinderGeometry, RawShaderMaterial>;
   private readonly strike = new Strike();
+  private readonly dissolve: IUniform<number> = { value: 0 };
+  private readonly hand = new Hand();
   private readonly lampPos = Array.from({ length: LAMPS }, () => new Vector3());
   private readonly lampDir = Array.from({ length: LAMPS }, () => new Vector3());
   private readonly materials: RawShaderMaterial[] = [];
@@ -105,7 +108,7 @@ export class Banner {
     onError: (error: unknown) => void,
   ) {
     const lights = { uLampPos: { value: this.lampPos }, uLampDir: { value: this.lampDir }, uLamp: this.strike.power };
-    const shared: Record<string, IUniform> = { ...valley, ...lights };
+    const shared: Record<string, IUniform> = { ...valley, ...lights, uDissolve: this.dissolve };
     const uPoster: IUniform<Texture | null> = { value: null };
 
     const clothMaterial = new RawShaderMaterial({
@@ -165,19 +168,34 @@ export class Banner {
   }
 
   /**
-   * Strikes the lamps as the camera arrives and steps the cloth. `speed` is the camera's speed in units a second, whose passing air pushes the
-   * banner, and `pointer` is in normalised device coordinates with its presence in z.
+   * Strikes the lamps as the camera arrives, lets the hand pinch the cloth, and steps it.
+   * `speed` is the camera's speed in units a second, whose passing air pushes the banner,
+   * `pointer` is the eased pointer that presses the cloth, and `hand` the raw one that holds it.
    */
-  update(time: number, cameraZ: number, speed: number, camera: Camera, pointer: Vector3, dt: number, still: boolean) {
+  update(
+    time: number,
+    cameraZ: number,
+    speed: number,
+    camera: Camera,
+    pointer: Vector3,
+    hand: HandInput,
+    dt: number,
+    still: boolean,
+  ): Grip {
     const rel = cameraZ - CAMERA.lookAhead - this.z;
-    // The camera passes over the banner a little past its station, so it stays until then.
-    this.group.visible = rel > -CAMERA.lookAhead - 0.6 && rel < 14 && this.poster !== null;
+    // Leaving, the banner dissolves, gone a little over a unit before the camera reaches it.
+    this.dissolve.value = smoothstep(-2.2, -4.3, rel);
+    this.group.visible = rel > -4.3 && rel < 14 && this.poster !== null;
     if (!this.group.visible) {
       this.strike.off();
-      return;
+      this.cloth.release();
+      return 'none';
     }
-    this.strike.update(smoothstep(7, 2.5, rel), time, still);
-    if (still) return;
+    this.strike.update(smoothstep(7, 2.5, rel) * (1 - this.dissolve.value), time, still);
+    if (still) return 'none';
+    const grip = this.hand.update(camera, hand, [
+      { cloth: this.cloth, space: this.fabric, halfWidth: WIDTH / 2, height: HEIGHT },
+    ]);
 
     // A breeze along the river that turns back and forth on two slow incommensurate beats, so
     // the banner sways and breathes instead of leaning, plus the air the camera pushes ahead
@@ -185,10 +203,12 @@ export class Banner {
     const breeze = 1.3 * (0.7 * Math.sin(time * 0.55) + 0.3 * Math.sin(time * 1.37 + 0.6)) + 0.15;
     const wake = Math.min(speed * 0.15, 1) * smoothstep(9, 1, Math.abs(rel));
     const wind: [number, number, number] = [0.35 * Math.sin(time * 0.41), 0, breeze - wake];
-    const poke = this.pokeFrom(camera, pointer);
+    // A held pinch is the hand's alone, so the press only acts on cloth that is not being held.
+    const poke = grip === 'held' ? null : this.pokeFrom(camera, pointer);
     this.owed = Math.min(this.owed + dt, MAX_STEPS * STEP);
     for (; this.owed >= STEP; this.owed -= STEP) this.cloth.step(STEP, { gravity: 9.8, wind, poke });
     this.drape();
+    return grip;
   }
 
   /** Copies the simulated cloth into the mesh and lays the hem rod along its bottom row. */
