@@ -1,15 +1,18 @@
 @AGENTS.md
 
-# AK47 · The State of Cinema
+# AK47 · The State of Experiences
 
-A scroll-driven Three.js flight through a film catalogue. Read `README.md` for the architecture.
+An immersive pre-sign-up entry journey through a streaming catalogue. Read `README.md` for the architecture.
 
 ## Invariants
 
-- Every layer reads `terrainHeight` from `shaders/field.ts`, so the ground, dots, dust and figures move together.
+- Every layer reads its heights from `shaders/field.ts`, so ground, water, dust and figures stay together.
 - Valley uniforms are shared objects across materials, so mutate their values and never replace them.
 - Per-frame values never go through React state. React only learns the station in view.
 - Colour work is linear. Posters upload as sRGB textures, and only the post pass encodes.
+- Every sheen reads the thin-film lookup built by `lib/thinFilm.ts`, so all surfaces share one series.
+- The cloth core in `engine/cloth.ts` stays pure arithmetic, with its behaviour pinned in tests.
+- `LETTERBOX` in `Cinema.tsx` frames the stage at 16:9 for screen recording, and stays false otherwise.
 
 ## Checks
 
