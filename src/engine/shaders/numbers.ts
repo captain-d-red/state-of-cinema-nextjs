@@ -30,7 +30,6 @@ in float aPoster;
 in float aSeed;
 out float vPoster;
 out float vAlpha;
-out float vLift;
 
 const float STAGGER = 0.35;
 const float SCATTER = 20.0;
@@ -59,10 +58,10 @@ void main() {
   clip.xy += (dir + vec2(-dir.y, dir.x) * 0.35) * bell * 0.025 * uCursor.z * clip.w;
   gl_Position = clip;
 
-  gl_PointSize = 9.0 * uPointScale * clamp(8.0 / max(-view.z, 0.5), 0.4, 1.6) * (1.0 + fall * 0.9);
+  // Prints under the pointer zoom up to twice their size, like frames pulled toward a loupe.
+  gl_PointSize = 9.0 * uPointScale * clamp(8.0 / max(-view.z, 0.5), 0.4, 1.6) * (1.0 + fall);
   vPoster = aPoster;
   vAlpha = smoothstep(0.35, 1.0, own) * uVisible;
-  vLift = fall;
 }
 `;
 
@@ -77,7 +76,6 @@ uniform vec2 uAtlasCells;
 uniform vec3 uGlow;
 in float vPoster;
 in float vAlpha;
-in float vLift;
 out vec4 fragColor;
 
 void main() {
@@ -89,8 +87,6 @@ void main() {
   vec3 poster = texture(uAtlas, vec2(uv.x, 1.0 - uv.y)).rgb;
   float edge = min(min(x, 1.0 - x), min(p.y, 1.0 - p.y));
   vec3 colour = mix(poster * 1.15, uGlow, (1.0 - smoothstep(0.0, 0.08, edge)) * 0.6);
-  // A print under the pointer brightens toward white, the way a frame catches the lamp.
-  colour = mix(colour, vec3(1.0), clamp(vLift * 0.8, 0.0, 0.6));
   fragColor = vec4(colour, vAlpha);
 }
 `;

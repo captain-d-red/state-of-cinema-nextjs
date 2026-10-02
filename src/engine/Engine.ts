@@ -19,15 +19,15 @@ import type { Catalogue } from '@/data/catalogue';
 import type { Station } from '@/data/story';
 import { hexToLinear, linearSrgbToOklab, mixOklch, type Vec3 } from '@/lib/color';
 import { clamp, damp, lerp, smoothstep } from '@/lib/math';
-import { GlassWall } from './GlassWall';
+import { Banner } from './Banner';
 import { createFullscreenGeometry } from './gl';
 import { Lens } from './Lens';
+import { Mirror } from './Mirror';
 import { Numbers } from './Numbers';
 import { Reel } from './Reel';
 import { between, dwell } from './scroll';
-import { RING_SLOTS } from './shaders/field';
 import { Valley } from './Valley';
-import { CAMERA, cameraZ, stationZ, valleyCentre } from './world';
+import { CAMERA, RIVER, cameraZ, stationZ, valleyCentre } from './world';
 
 export interface EngineOptions {
   readonly canvas: HTMLCanvasElement;
@@ -85,9 +85,10 @@ export class Engine {
   private readonly scene = new Scene();
   private readonly screen: BufferGeometry;
   private readonly lens: Lens;
+  private readonly mirror = new Mirror(RIVER.level);
   private readonly valley: Valley;
   private readonly numbers: Numbers;
-  private readonly walls: GlassWall[];
+  private readonly banners: Banner[];
   private readonly reel: Reel;
   /** Pointer in normalised device coordinates and how present it is, shared with the figures. */
   private readonly cursor = { value: new Vector3() };
@@ -96,6 +97,8 @@ export class Engine {
   private readonly story: readonly Station[];
   /** Station tints in OKLab, blended through OKLCh so the valley stays saturated between stations. */
   private readonly tints: Vec3[];
+  /** Station films, as optical path difference, spread and strength, blended linearly. */
+  private readonly films: Vector3[];
   private readonly atlas: IUniform<Texture | null> = { value: null };
   private readonly abort = new AbortController();
   private readonly reducedMotion: boolean;
@@ -117,13 +120,15 @@ export class Engine {
   private kick = 0;
   private bank = 0;
   private hover = 0;
-  private nextRing = 0;
   private lastHit: Vector3 | null = null;
+  /** The pointer's path over the water this frame, from where it was to where it is. */
+  private readonly path: [number, number, number, number] = [0, 0, 0, 0];
 
   constructor({ canvas, catalogue, story, fontFamily, reducedMotion, onError }: EngineOptions) {
     this.story = story;
     this.reducedMotion = reducedMotion;
     this.tints = story.map((s) => linearSrgbToOklab(hexToLinear(s.tint)));
+    this.films = story.map((s) => new Vector3(s.sheen.opd, s.sheen.spread, s.sheen.strength));
     this.renderer = new WebGLRenderer({
       canvas,
       antialias: false,
@@ -140,7 +145,7 @@ export class Engine {
     this.screen = createFullscreenGeometry();
     this.lens = new Lens(this.screen);
 
-    this.valley = new Valley(this.screen);
+    this.valley = new Valley(this.screen, this.mirror, this.cursor);
     this.valley.uniforms.uBackground.value.set(...background);
     this.scene.add(this.valley.group);
 
@@ -157,10 +162,10 @@ export class Engine {
       fontFamily,
     );
     this.scene.add(this.numbers.group);
-    this.walls = story.flatMap((s, i) =>
-      s.kind === 'pick' ? [new GlassWall(s.film, stationZ(i), this.valley.uniforms.uCamPos, onError)] : [],
+    this.banners = story.flatMap((s, i) =>
+      s.kind === 'pick' ? [new Banner(s.film, stationZ(i), this.valley.uniforms, onError)] : [],
     );
-    for (const wall of this.walls) this.scene.add(wall.group);
+    for (const banner of this.banners) this.scene.add(banner.group);
     this.reel = new Reel(catalogue.films.length, this.valley.uniforms.uGlow, this.atlas);
     this.scene.add(this.reel.mesh);
     this.loadAtlas(onError);
@@ -197,10 +202,12 @@ export class Engine {
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w0, h0, false);
     this.lens.resize(Math.round(w0 * dpr), Math.round(h0 * dpr));
+    this.mirror.resize(Math.round(w0 * dpr), Math.round(h0 * dpr));
     // Dots are sized in drawing-buffer pixels with a gentle lift on dense screens, so they stay
     // fine specks on a Retina display instead of doubling into beads.
     this.valley.uniforms.uPointScale.value = Math.sqrt(dpr);
     this.camera.aspect = this.aspect;
+    this.valley.aspect.value = this.aspect;
   }
 
   frame(timeMs: number, input: EngineInput): EngineFrame {
@@ -210,10 +217,13 @@ export class Engine {
     this.lastTime = time;
     // The intro waits for the images, so it plays out in front of the visitor instead of under
     // the loader. A missing image must never strand anyone, so it starts anyway after a while.
-    const images = 1 + this.walls.length;
-    const arrived = (this.atlas.value ? 1 : 0) + this.walls.filter((w) => w.ready).length;
+    const images = 1 + this.banners.length;
+    const arrived = (this.atlas.value ? 1 : 0) + this.banners.filter((b) => b.ready).length;
     const loaded = arrived / images;
-    if (this.startTime === null && (loaded >= 1 || time - this.firstTime > LOAD_PATIENCE)) this.startTime = time;
+    if (this.startTime === null && (loaded >= 1 || time - this.firstTime > LOAD_PATIENCE)) {
+      this.startTime = time;
+      this.warm();
+    }
     const age = this.startTime === null ? 0 : time - this.startTime;
     const linear = this.reducedMotion ? 1 : clamp(age / INTRO_SECONDS, 0, 1);
     const intro = 1 - (1 - linear) ** 3;
@@ -226,7 +236,7 @@ export class Engine {
     // The tunnel forms around the eye line, so the view levels out to look straight down it.
     const tunnel = smoothstep(cameraZ(count - 2) - 1.5, cameraZ(count - 1) + 1, z);
     this.placeCamera(z, intro, tunnel, input, dt);
-    this.touchGround(input, time, dt);
+    this.touchGround(input, dt);
 
     const u = this.valley.uniforms;
     u.uTime.value = time;
@@ -234,17 +244,25 @@ export class Engine {
     u.uCamPos.value.copy(this.camera.position);
     const focusZ = z - CAMERA.lookAhead + 0.4;
     u.uFocus.value.set(valleyCentre(focusZ), focusZ);
-    this.tint.set(...mixOklch(this.tints[from]!, this.tints[to]!, smoothstep(0, 1, t)));
+    const blend = smoothstep(0, 1, t);
+    this.tint.set(...mixOklch(this.tints[from]!, this.tints[to]!, blend));
     this.applyTint(this.tint);
+    u.uFilm.value.lerpVectors(this.films[from]!, this.films[to]!, blend);
     u.uTunnel.value = tunnel;
-    this.valley.update(this.renderer, z);
+    this.valley.update(this.renderer, z, dt, this.path, this.hover);
     this.numbers.update(z, dt, this.reducedMotion);
-    for (const wall of this.walls) wall.update(z, this.camera, this.cursor.value, dt, this.reducedMotion);
+    for (const banner of this.banners)
+      banner.update(time, z, this.speed, this.camera, this.cursor.value, dt, this.reducedMotion);
     // Picking a film is navigation, so the reel reads the raw pointer even under reduced motion,
-    // where the cursor that pushes particles and flips tiles is held still.
+    // where the cursor that pushes particles and presses the banners is held still.
     this.pick.set(input.pointerX, input.pointerY, input.pointerActive ? 1 : 0);
     const hoveredFilm = this.reel.update(time, this.camera, this.pick, tunnel, dt, this.reducedMotion);
 
+    // The reflection is lit from the mirrored eye, so view-dependent light lands where it would in water.
+    this.mirror.place(this.camera);
+    u.uCamPos.value.copy(this.mirror.position);
+    this.mirror.render(this.renderer, this.scene, this.valley.river);
+    u.uCamPos.value.copy(this.camera.position);
     this.lens.render(this.renderer, this.scene, this.camera, time, this.reducedMotion ? 1 : smoothstep(0, 0.8, age));
     return {
       position,
@@ -255,6 +273,26 @@ export class Engine {
       loaded,
       started: this.startTime !== null,
     };
+  }
+
+  /**
+   * Compiles every material and uploads every image while the loader still covers the page, so
+   * the first sight of a banner or the reel never stalls a frame. Hidden objects are shown for
+   * the compile, since the renderer only prepares what is visible.
+   */
+  private warm(): void {
+    const hidden: { visible: boolean }[] = [];
+    this.scene.traverse((o) => {
+      if (!o.visible) {
+        hidden.push(o);
+        o.visible = true;
+      }
+    });
+    this.renderer.compile(this.scene, this.camera);
+    for (const o of hidden) o.visible = false;
+    for (const texture of [this.atlas.value, ...this.banners.map((b) => b.texture)]) {
+      if (texture) this.renderer.initTexture(texture);
+    }
   }
 
   /**
@@ -284,7 +322,10 @@ export class Engine {
     this.camera.position.set(here + this.orbit.x * 0.22, CAMERA.height + drop + this.orbit.y * 0.1, z);
     const tall = this.aspect < 0.8;
     const lookY = lerp(tall ? CAMERA.lookHeightTall : CAMERA.lookHeight, CAMERA.height, tunnel);
-    this.look.set(ahead + this.orbit.x * 0.06, lookY, z - CAMERA.lookAhead);
+    // The tunnel is wound around the camera's own axis, so the view turns to look straight down
+    // it, and its vanishing point sits in the middle of the frame instead of off toward the bend.
+    const lookX = lerp(ahead + this.orbit.x * 0.06, this.camera.position.x, tunnel);
+    this.look.set(lookX, lookY, z - CAMERA.lookAhead);
     this.camera.lookAt(this.look);
 
     const speed = this.lastCameraZ === null ? 0 : Math.abs(z - this.lastCameraZ) / dt;
@@ -307,28 +348,37 @@ export class Engine {
     this.camera.updateMatrixWorld();
   }
 
-  /** The pointer raises a soft bump where it rests on the dunes, and a tap sends a ring out from where it lands. */
-  private touchGround(input: EngineInput, time: number, dt: number): void {
+  /**
+   * The pointer stirs the water where it rests, and a tap drops a ring where it lands. Both
+   * are found by casting the pointer's ray onto the water's plane.
+   */
+  private touchGround(input: EngineInput, dt: number): void {
+    const active = input.pointerActive && !this.reducedMotion;
     let over = false;
-    if (input.pointerActive && !this.reducedMotion) {
+    if (active) {
       this.raycaster.setFromCamera(new Vector2(input.pointerX, input.pointerY), this.camera);
       over = this.raycaster.ray.intersectPlane(this.ground, this.hit) !== null;
     }
     this.hover = damp(this.hover, over ? 1 : 0, 3, dt);
-    const active = input.pointerActive && !this.reducedMotion ? 1 : 0;
     const c = this.cursor.value;
-    c.set(damp(c.x, input.pointerX, 14, dt), damp(c.y, input.pointerY, 14, dt), damp(c.z, active, 6, dt));
-    const h = this.valley.uniforms.uHover.value;
-    if (over) h.set(damp(h.x, this.hit.x, 3, dt), damp(h.y, this.hit.z, 3, dt), this.hover);
-    else h.z = this.hover;
-    this.valley.mark(over && this.lastHit ? [this.lastHit.x, this.lastHit.z, this.hit.x, this.hit.z] : null);
+    c.set(damp(c.x, input.pointerX, 14, dt), damp(c.y, input.pointerY, 14, dt), damp(c.z, active ? 1 : 0, 6, dt));
+    const from = this.lastHit ?? this.hit;
+    this.path[0] = from.x;
+    this.path[1] = from.z;
+    this.path[2] = this.hit.x;
+    this.path[3] = this.hit.z;
     this.lastHit = over ? (this.lastHit ?? new Vector3()).copy(this.hit) : null;
+    this.valley.uniforms.uHover.value.set(this.hit.x, this.hit.z, this.hover);
     if (this.reducedMotion) return;
     for (const tap of input.taps) {
+      // In the tunnel there is no water left to stir, so a click sends its ring through the stars.
+      if (this.valley.uniforms.uTunnel.value > 0.5) {
+        this.valley.pulse.set(tap.x, tap.y, this.valley.uniforms.uTime.value);
+        continue;
+      }
       this.raycaster.setFromCamera(new Vector2(tap.x, tap.y), this.camera);
-      if (!this.raycaster.ray.intersectPlane(this.ground, this.tapHit)) continue;
-      this.valley.uniforms.uRings.value[this.nextRing]!.set(this.tapHit.x, this.tapHit.z, time);
-      this.nextRing = (this.nextRing + 1) % RING_SLOTS;
+      if (this.raycaster.ray.intersectPlane(this.ground, this.tapHit))
+        this.valley.wake.drop(this.tapHit.x, this.tapHit.z);
     }
   }
 
@@ -337,9 +387,10 @@ export class Engine {
     this.atlas.value?.dispose();
     this.valley.dispose();
     this.numbers.dispose();
-    for (const wall of this.walls) wall.dispose();
+    for (const banner of this.banners) banner.dispose();
     this.reel.dispose();
     this.lens.dispose();
+    this.mirror.dispose();
     this.screen.dispose();
     this.renderer.dispose();
   }

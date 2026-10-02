@@ -32,6 +32,17 @@ export const TERRAIN = {
   corridorSharpness: 1.85,
 } as const;
 
+/**
+ * The valley floor is flooded. Its bed sinks below the water inside the corridor and rises
+ * back out across a shore past the corridor's edge, so the shoreline wanders with the dunes.
+ *
+ *   bank ╲                               ╱ bank
+ *         ╲__ shore ________________ __╱
+ *   ═══════════════ level ═════════════════   water, flat but for the wake
+ *            ╲______ bed, depth below ___╱
+ */
+export const RIVER = { level: 0, depth: 0.38, shore: 0.75 } as const;
+
 /** Distance along the flight between neighbouring stations. */
 export const STATION_SPACING = 9;
 /** Where the first station after the title stands. */

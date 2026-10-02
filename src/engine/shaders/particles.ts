@@ -24,17 +24,19 @@ vec4 beadColour(vec2 coord, float alpha) {
 `;
 
 /**
- * The bright dots strewn over the dunes. They sit on a fixed grid in world space and wrap
- * around the camera along z, so the field never runs out however far the flight goes.
- * Every few seconds a ring sweeps out from the lit patch and swells each dot it passes.
- *
- * For the finale every dot lifts off the ground into a spiral around the flight path. Its
- * angle comes from its own seed and from its fixed grid z, never the wrapped one, so the helix
- * keeps its identity as the camera moves through it.
+ * The stars of the finale. Every dot lifts off the river into a spiral around the flight
+ * path. Its angle comes from its own seed and from its fixed grid z, never the wrapped one, so
+ * the helix keeps its identity as the camera moves through it.
  *
  *        ·  ·  ·            angle = seed · 2π · 0.75 + z · 0.735 − 0.21 · time
  *     ·     ◉     ·         radius = 2.05 ± a little scatter
  *        ·  ·  ·
+ *
+ * The pointer is a slow vortex in the starfield: on screen, stars near it are turned about it
+ * by an angle that dies away with distance, so the helix flows through a twist that follows
+ * the hand. A click sends a ring out from where it lands, pushing the stars aside as it passes.
+ *
+ *   turn = 1.6 · e^(−d²/r²)          pulse = e^(−(d − 1.3·age)²/0.012) · (1 − age/1.4)
  */
 export const dotsVertex = glsl`${header}
 ${field}
@@ -43,6 +45,11 @@ uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
 uniform float uWindow;
 uniform float uPointScale;
+/** Pointer in normalised device coordinates with its presence, and the screen's width over its height. */
+uniform vec3 uCursor;
+uniform float uAspect;
+/** The last click in the tunnel, in normalised device coordinates, and when it landed. */
+uniform vec3 uPulse;
 in vec3 position;
 in float aSeed;
 out float vAlpha;
@@ -52,7 +59,7 @@ void main() {
   vec2 xz = position.xz + jitter;
   float rel = mod(xz.y - uCamPos.z + uWindow * 0.5, uWindow) - uWindow * 0.5;
   xz.y = uCamPos.z + rel;
-  vec3 world = vec3(xz.x, terrainHeight(xz) + 0.045, xz.y);
+  vec3 world = vec3(xz.x, surfaceHeight(xz), xz.y);
   if (uTunnel > 0.0001) {
     float radius = 2.05 + (fract(aSeed * 41.7) - 0.5) * 0.31;
     float angle = aSeed * 6.2831853 * 0.75 + position.z * 0.735 - uTime * 0.21;
@@ -61,23 +68,28 @@ void main() {
     world = mix(world, helix, uTunnel);
   }
   vec4 view = viewMatrix * vec4(world, 1.0);
-  gl_Position = projectionMatrix * view;
+  vec4 clip = projectionMatrix * view;
+  // Offsets are measured with the aspect folded in, so the vortex and the ring stay round.
+  vec2 square = vec2(uAspect, 1.0);
+  vec2 ndc = clip.xy / max(clip.w, 1e-4);
+  vec2 off = (ndc - uCursor.xy) * square;
+  float pull = exp(-dot(off, off) / 0.12) * uCursor.z * uTunnel;
+  float turn = 1.6 * pull;
+  off = mat2(cos(turn), sin(turn), -sin(turn), cos(turn)) * off * (1.0 - 0.2 * pull);
+  ndc = uCursor.xy + off / square;
+  vec2 fromPulse = (ndc - uPulse.xy) * square;
+  float d = length(fromPulse);
+  float age = uTime - uPulse.z;
+  float pulse = age > 0.0 && age < 1.4 ? exp(-pow(d - 1.3 * age, 2.0) / 0.012) * (1.0 - age / 1.4) : 0.0;
+  ndc += fromPulse / max(d, 1e-4) / square * pulse * 0.07 * uTunnel;
+  clip.xy = ndc * clip.w;
+  gl_Position = clip;
 
-  float period = 2.85;
-  float phase = mod(uTime, period) / period;
-  float front = (1.0 - pow(1.0 - phase, 3.0)) * period * 1.85;
-  float pulse = smoothstep(1.1, 0.0, abs(length(xz - uFocus) - front)) * smoothstep(0.0, 0.04, phase) * (1.0 - smoothstep(0.96, 1.0, phase));
   // Inside the tunnel a band of light runs away from the camera every four seconds.
   float band = smoothstep(4.0, 0.0, abs(xz.y - (uCamPos.z - mod(uTime, 4.0) * 18.0))) * 0.8 * uTunnel;
-  float perspective = mix(clamp(8.0 / max(-view.z, 0.5), 0.4, 1.6), 1.0, uTunnel);
-  float size = mix(0.44, 1.56, aSeed) * perspective * (1.0 + pulse * 0.85 * (1.0 - uTunnel) + band);
-  gl_PointSize = 2.0 * uPointScale * size;
-
-  // The boot sweeps outward from the camera, so the field appears as a wave, not all at once.
-  float wave = 1.0 - smoothstep(uIntro * 50.0, uIntro * 50.0 + 4.0, length(xz - uCamPos.xz));
-  float ground = (1.0 - fogAt(xz)) * clamp(1.0 + view.z * 0.05, 0.2, 1.0);
+  gl_PointSize = 2.0 * uPointScale * mix(0.44, 1.56, aSeed) * (1.0 + band + 0.8 * pull + 1.2 * pulse);
   float tunnel = clamp(1.0 + view.z / 60.0, 0.0, 1.0) * (1.0 + band * 0.5);
-  vAlpha = mix(ground, tunnel, uTunnel) * wave;
+  vAlpha = tunnel * uTunnel;
 }
 `;
 
@@ -91,7 +103,7 @@ void main() {
 `;
 
 /**
- * Motes rising off the dunes. Each one loops through a life of a dozen seconds, drifting
+ * Motes rising off the river and the dunes. Each one loops through a life of a dozen seconds, drifting
  * sideways as it climbs and fading in and out on a half sine so it never pops.
  */
 export const dustVertex = glsl`${header}
@@ -110,7 +122,7 @@ void main() {
   vec2 xz = position.xz + vec2(sin(uTime * 0.7 + aSeed.x * 31.7), cos(uTime * 0.5 + aSeed.x * 17.3)) * 0.085;
   float rel = mod(xz.y - uCamPos.z + uWindow * 0.5, uWindow) - uWindow * 0.5;
   xz.y = uCamPos.z + rel;
-  vec3 world = vec3(xz.x, terrainHeight(xz) + age * 1.15, xz.y);
+  vec3 world = vec3(xz.x, surfaceHeight(xz) + age * 1.15, xz.y);
   // In the tunnel the motes stop rising and stream away down the flight path instead.
   float flow = age * 22.0 * uTunnel;
   float rel2 = mod(world.z - flow - uCamPos.z + uWindow * 0.5, uWindow) - uWindow * 0.5;

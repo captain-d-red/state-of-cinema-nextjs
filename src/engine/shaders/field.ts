@@ -1,14 +1,11 @@
-import { BEND, TERRAIN } from '../world';
+import { BEND, RIVER, TERRAIN } from '../world';
 import { f, glsl, hash } from './common';
 
-/** Ring slots a click can occupy at once. A fifth click reuses the oldest slot. */
-export const RING_SLOTS = 4;
-
 /**
- * Gradient noise, the height field and everything that disturbs it. The terrain, its dots,
- * the dust and the rising numbers all call `terrainHeight`, so a ripple moves every layer
- * together and nothing floats above or sinks below the ground it belongs to. It brings the
- * hash functions with it, so a shader that includes it must not include `hash` again.
+ * Gradient noise and the height field. The terrain, the dust and the rising numbers all call
+ * the same height functions, so nothing floats above or sinks below the ground it belongs to.
+ * It brings the hash functions with it, so a shader that includes it must not include `hash`
+ * again.
  */
 export const field = glsl`${hash}
 uniform float uTime;
@@ -16,8 +13,6 @@ uniform float uTime;
 uniform float uIntro;
 /** Pointer on the ground, as world x and z, and how present it is from zero to one. */
 uniform vec3 uHover;
-/** Click rings, as world x and z and the time each started. A negative time is an empty slot. */
-uniform vec3 uRings[${RING_SLOTS}];
 
 /** Perlin-style gradient noise with a quintic fade, in about −1 to 1. */
 float gnoise(vec2 p) {
@@ -52,30 +47,24 @@ float valleyCentre(float z) {
  */
 float valley(vec2 xz) {
   float d = max(abs(xz.x - valleyCentre(xz.y)) - ${f(TERRAIN.corridorWidth)}, 0.0);
-  return pow(d, ${f(TERRAIN.corridorSharpness)}) * ${f(TERRAIN.corridorHeight)};
+  // The walls rise and fall along their length on a slow noise, so their crests read as a
+  // range of hills against the sky instead of one smooth curve.
+  float range = 0.72 + 0.56 * (gnoise(xz * 0.13 + 4.1) * 0.5 + 0.5) + 0.12 * gnoise(xz * 0.47);
+  return pow(d, ${f(TERRAIN.corridorSharpness)}) * ${f(TERRAIN.corridorHeight)} * range;
 }
 
-/**
- * A click sends one ring out across the dunes. Its height is a sine under a Gaussian
- * envelope that travels at constant speed, and it swells then dies as t·e^(1−t) over its life.
- */
-float rings(vec2 xz) {
-  float sum = 0.0;
-  for (int i = 0; i < ${RING_SLOTS}; i++) {
-    vec3 ring = uRings[i];
-    float age = uTime - ring.z;
-    if (ring.z < 0.0 || age < 0.0 || age > 4.0) continue;
-    float r = length(xz - ring.xy);
-    float front = r - age * 1.6;
-    float envelope = exp(-front * front / 1.6);
-    float life = age / 0.9;
-    sum += sin(front * 5.7) * envelope * life * exp(1.0 - life) * exp(-r * 0.12);
-  }
-  return sum * 0.08;
+/** How far the river bed sinks below the dunes, full inside the corridor and none past the shore. */
+float bed(vec2 xz) {
+  float d = abs(xz.x - valleyCentre(xz.y));
+  return ${f(RIVER.depth)} * (1.0 - smoothstep(${f(TERRAIN.corridorWidth - 0.3)}, ${f(TERRAIN.corridorWidth + RIVER.shore)}, d));
 }
 
 float terrainHeight(vec2 xz) {
-  float hover = exp(-dot(xz - uHover.xy, xz - uHover.xy) / 0.42) * 0.11 * uHover.z;
-  return (dunes(xz) + rings(xz) + hover) * uIntro + valley(xz);
+  return dunes(xz) * uIntro + valley(xz) - bed(xz);
+}
+
+/** The height of whatever is on top, the water where the river covers the bed and the ground elsewhere. */
+float surfaceHeight(vec2 xz) {
+  return max(terrainHeight(xz), ${f(RIVER.level)});
 }
 `;
