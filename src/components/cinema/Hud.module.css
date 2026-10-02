@@ -339,6 +339,32 @@
     opacity 300ms ease;
 }
 
+/*
+ * Short screens, a phone on its side. The opening lines are sized by the height as well as
+ * the width so they never meet, the strap gives way to them, and a pick's copy drops to the
+ * foot of the frame below its banner with only the title and the play button.
+ */
+@media (max-height: 520px) and (min-aspect-ratio: 1/1) {
+  .titleLine {
+    font-size: min(11.6vw, 21vh);
+  }
+  .strap,
+  .kicker,
+  .byline,
+  .pick .footnote {
+    display: none;
+  }
+  .pick {
+    padding-bottom: calc(var(--gutter) + 2.6rem);
+  }
+  .pickTitle {
+    font-size: clamp(1.3rem, min(4.4vw, 9vh), 3rem);
+  }
+  .play {
+    margin-top: 0.8rem;
+  }
+}
+
 @media (max-width: 640px) {
   .credit,
   .wide {
