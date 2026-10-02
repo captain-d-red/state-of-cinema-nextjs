@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { Cloth, type ClothForces, type ClothSpec } from './cloth';
 
-const SPEC: ClothSpec = { columns: 9, rows: 13, width: 1, height: 1.5, clips: [0, 4, 8], rodMass: 6, gather: 1 };
+const SPEC: ClothSpec = {
+  columns: 9,
+  rows: 13,
+  width: 1,
+  height: 1.5,
+  clips: [0, 4, 8],
+  hem: 'rod',
+  hemMass: 6,
+  gather: 1,
+};
 const STILL: ClothForces = { gravity: 9.8, wind: [0, 0, 0], poke: null };
 const settle = (cloth: Cloth, forces: ClothForces, steps = 600) => {
   for (let i = 0; i < steps; i++) cloth.step(1 / 120, forces);
@@ -41,6 +50,25 @@ describe('Cloth', () => {
     settle(cloth, STILL);
     const between = 2 * SPEC.columns + 2;
     expect(Math.abs(at(cloth, between)[2]!)).toBeGreaterThan(0.01);
+  });
+
+  it('follows its clips along the rail and bunches as they close up', () => {
+    const cloth = new Cloth({ ...SPEC, hem: 'weighted', clips: [0, 2, 4, 6, 8] });
+    settle(cloth, STILL, 120);
+    // Draw every clip toward the left end, the way a curtain opens.
+    for (let step = 0; step < 240; step++) {
+      for (const [i, c] of [0, 2, 4, 6, 8].entries()) {
+        const [x0, y0] = cloth.clipAt(c);
+        cloth.moveClip(c, x0 + (-0.5 + i * 0.03 - x0) * Math.min(1, step / 120), y0, 0);
+      }
+      cloth.step(1 / 120, STILL);
+    }
+    expect(at(cloth, 8)[0]!).toBeCloseTo(-0.5 + 4 * 0.03, 6);
+    // The free cloth beside the last clip has been carried most of the way across.
+    expect(at(cloth, 4 * SPEC.columns + 8)[0]!).toBeLessThan(0);
+    // And the gathered cloth has folded toward and away from the viewer to make room.
+    const depth = Math.max(...[1, 3, 5, 7].map((c) => Math.abs(at(cloth, 2 * SPEC.columns + c)[2]!)));
+    expect(depth).toBeGreaterThan(0.03);
   });
 
   it('billows downwind', () => {

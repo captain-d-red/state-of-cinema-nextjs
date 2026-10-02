@@ -20,9 +20,11 @@ import type { Station } from '@/data/story';
 import { hexToLinear, linearSrgbToOklab, mixOklch, type Vec3 } from '@/lib/color';
 import { clamp, damp, lerp, smoothstep } from '@/lib/math';
 import { Banner } from './Banner';
+import { Curtain } from './Curtain';
 import { createFullscreenGeometry } from './gl';
 import { Lens } from './Lens';
 import { Mirror } from './Mirror';
+import type { CurtainCopy } from './print';
 import { Numbers } from './Numbers';
 import { Reel } from './Reel';
 import { between, dwell } from './scroll';
@@ -34,6 +36,8 @@ export interface EngineOptions {
   readonly catalogue: Catalogue;
   readonly story: readonly Station[];
   readonly fontFamily: string;
+  /** What the opening's curtain is printed with. */
+  readonly curtain: CurtainCopy;
   readonly reducedMotion: boolean;
   readonly onError: (error: unknown) => void;
 }
@@ -62,6 +66,8 @@ export interface EngineFrame {
   readonly loaded: number;
   /** Whether the intro has begun, the moment the loader should step aside. */
   readonly started: boolean;
+  /** Distance from the eye to the point on the water under the pointer, or null when it is off the water. */
+  readonly focus: number | null;
 }
 
 /** Keeps the drawing buffer near 4K worth of pixels however dense the display is. */
@@ -76,6 +82,11 @@ const BACKGROUND = '#08090d';
  * to how far the speed jumps above its own running average, then both relax.
  */
 const KICK = { roll: 0.12, fov: 24, gain: 0.18 } as const;
+/**
+ * The opening's first scroll, as shares of the way from the opening to the first figure: the
+ * curtain starts to open a little in, and the camera holds until it is open.
+ */
+const OPENING = { start: 0.03, hold: 0.3 } as const;
 /** Roll per unit of lateral acceleration, and the most the camera may lean into a bend, in radians. */
 const BANK = { gain: 0.012, max: 0.09 } as const;
 
@@ -89,6 +100,7 @@ export class Engine {
   private readonly valley: Valley;
   private readonly numbers: Numbers;
   private readonly banners: Banner[];
+  private readonly curtain: Curtain;
   private readonly reel: Reel;
   /** Pointer in normalised device coordinates and how present it is, shared with the figures. */
   private readonly cursor = { value: new Vector3() };
@@ -121,10 +133,11 @@ export class Engine {
   private bank = 0;
   private hover = 0;
   private lastHit: Vector3 | null = null;
+  private focus: number | null = null;
   /** The pointer's path over the water this frame, from where it was to where it is. */
   private readonly path: [number, number, number, number] = [0, 0, 0, 0];
 
-  constructor({ canvas, catalogue, story, fontFamily, reducedMotion, onError }: EngineOptions) {
+  constructor({ canvas, catalogue, story, fontFamily, curtain, reducedMotion, onError }: EngineOptions) {
     this.story = story;
     this.reducedMotion = reducedMotion;
     this.tints = story.map((s) => linearSrgbToOklab(hexToLinear(s.tint)));
@@ -166,6 +179,8 @@ export class Engine {
       s.kind === 'pick' ? [new Banner(s.film, stationZ(i), this.valley.uniforms, onError)] : [],
     );
     for (const banner of this.banners) this.scene.add(banner.group);
+    this.curtain = new Curtain(cameraZ(0), this.valley.uniforms, curtain, fontFamily);
+    this.scene.add(this.curtain.group);
     this.reel = new Reel(catalogue.films.length, this.valley.uniforms.uGlow, this.atlas);
     this.scene.add(this.reel.mesh);
     this.loadAtlas(onError);
@@ -231,7 +246,11 @@ export class Engine {
     const count = this.story.length;
     const position = dwell(clamp(input.position, 0, count - 1));
     const { from, to, t } = between(position, count);
-    const z = lerp(cameraZ(from), cameraZ(to), t);
+    // Leaving the opening, the first stretch of scroll opens the curtain while the camera
+    // holds, and only then does the flight begin, so the eye never meets closed cloth.
+    const opening = from === 0 && to === 1 ? t : position >= 1 ? 1 : 0;
+    const travel = from === 0 ? smoothstep(OPENING.hold, 1, t) : t;
+    const z = lerp(cameraZ(from), cameraZ(to), travel);
 
     // The tunnel forms around the eye line, so the view levels out to look straight down it.
     const tunnel = smoothstep(cameraZ(count - 2) - 1.5, cameraZ(count - 1) + 1, z);
@@ -253,6 +272,16 @@ export class Engine {
     this.numbers.update(z, dt, this.reducedMotion);
     for (const banner of this.banners)
       banner.update(time, z, this.speed, this.camera, this.cursor.value, dt, this.reducedMotion);
+    this.curtain.update(
+      time,
+      z,
+      smoothstep(OPENING.start, OPENING.hold, opening),
+      intro,
+      this.camera,
+      this.cursor.value,
+      dt,
+      this.reducedMotion,
+    );
     this.lightWater();
     // Picking a film is navigation, so the reel reads the raw pointer even under reduced motion,
     // where the cursor that pushes particles and presses the banners is held still.
@@ -273,6 +302,7 @@ export class Engine {
       tunnel,
       loaded,
       started: this.startTime !== null,
+      focus: this.focus,
     };
   }
 
@@ -280,8 +310,8 @@ export class Engine {
   private lightWater(): void {
     const u = this.valley.uniforms;
     u.uLampPower.value = 0;
-    for (const banner of this.banners) {
-      const { positions, power } = banner.lamps;
+    for (const lit of [this.curtain, ...this.banners]) {
+      const { positions, power } = lit.lamps;
       if (power <= u.uLampPower.value) continue;
       u.uLampPower.value = power;
       for (let i = 0; i < positions.length; i++) u.uLampPos.value[i]!.copy(positions[i]!);
@@ -303,7 +333,7 @@ export class Engine {
     });
     this.renderer.compile(this.scene, this.camera);
     for (const o of hidden) o.visible = false;
-    for (const texture of [this.atlas.value, ...this.banners.map((b) => b.texture)]) {
+    for (const texture of [this.atlas.value, this.curtain.texture, ...this.banners.map((b) => b.texture)]) {
       if (texture) this.renderer.initTexture(texture);
     }
   }
@@ -334,7 +364,10 @@ export class Engine {
     const ahead = valleyCentre(z - CAMERA.lookAhead);
     this.camera.position.set(here + this.orbit.x * 0.22, CAMERA.height + drop + this.orbit.y * 0.1, z);
     const tall = this.aspect < 0.8;
-    const lookY = lerp(tall ? CAMERA.lookHeightTall : CAMERA.lookHeight, CAMERA.height, tunnel);
+    const opening = smoothstep(cameraZ(1), cameraZ(0), z);
+    const river = tall ? CAMERA.lookHeightTall : CAMERA.lookHeight;
+    const level = tall ? CAMERA.openingLookHeightTall : CAMERA.openingLookHeight;
+    const lookY = lerp(lerp(river, level, opening * opening), CAMERA.height, tunnel);
     // The tunnel is wound around the camera's own axis, so the view turns to look straight down
     // it, and its vanishing point sits in the middle of the frame instead of off toward the bend.
     const lookX = lerp(ahead + this.orbit.x * 0.06, this.camera.position.x, tunnel);
@@ -373,6 +406,7 @@ export class Engine {
       over = this.raycaster.ray.intersectPlane(this.ground, this.hit) !== null;
     }
     this.hover = damp(this.hover, over ? 1 : 0, 3, dt);
+    this.focus = over ? this.camera.position.distanceTo(this.hit) : null;
     const c = this.cursor.value;
     c.set(damp(c.x, input.pointerX, 14, dt), damp(c.y, input.pointerY, 14, dt), damp(c.z, active ? 1 : 0, 6, dt));
     const from = this.lastHit ?? this.hit;
@@ -401,6 +435,7 @@ export class Engine {
     this.valley.dispose();
     this.numbers.dispose();
     for (const banner of this.banners) banner.dispose();
+    this.curtain.dispose();
     this.reel.dispose();
     this.lens.dispose();
     this.mirror.dispose();

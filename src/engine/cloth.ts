@@ -7,7 +7,7 @@
  *        │ ╲ │ ╱ │ ╲ │ ╱ │   structural edges hold the weave, diagonals resist shear,
  *        ●───●───●───●───●   and edges that skip a particle resist bending
  *        │   │   │   │   │
- *   rod  ●═══●═══●═══●═══●   bottom row, a rigid weighted rod that keeps the cloth hanging true
+ *   hem  ●═══●═══●═══●═══●   bottom row, either a rigid weighted rod or a heavy weighted tape
  *
  * Banner space has its origin at the middle of the top edge, x across, y up and z toward the
  * viewer, so the cloth hangs in y < 0.
@@ -25,8 +25,14 @@ export interface ClothSpec {
    * clips has slack and drapes in soft swags, the folds that make hung fabric read as fabric.
    */
   readonly gather: number;
-  /** Mass of each end of the hem rod against one particle of cloth. */
-  readonly rodMass: number;
+  /**
+   * The hem. A rod is rigid, a banner's width long, and only its two ends carry its mass. A
+   * weighted tape is the curtain's lead chain: every hem particle is heavy but free, so the
+   * hem can gather with the rest of the cloth.
+   */
+  readonly hem: 'rod' | 'weighted';
+  /** Mass of each weighted hem particle, or of each end of the rod, against one particle of cloth. */
+  readonly hemMass: number;
 }
 
 export interface ClothForces {
@@ -77,7 +83,7 @@ export class Cloth {
   private clock = 0;
 
   constructor(readonly spec: ClothSpec) {
-    const { columns, rows, width, height, clips, rodMass, gather } = spec;
+    const { columns, rows, width, height, clips, hem, hemMass, gather } = spec;
     const count = columns * rows;
     this.positions = new Float32Array(count * 3);
     this.inverseMass = new Float32Array(count).fill(1);
@@ -90,9 +96,10 @@ export class Cloth {
       }
     }
     for (const c of clips) this.inverseMass[c] = 0;
-    const rod = (rows - 1) * columns;
-    this.inverseMass[rod] = 1 / rodMass;
-    this.inverseMass[rod + columns - 1] = 1 / rodMass;
+    const foot = (rows - 1) * columns;
+    for (let c = 0; c < columns; c++) {
+      if (hem === 'weighted' || c === 0 || c === columns - 1) this.inverseMass[foot + c] = 1 / hemMass;
+    }
     this.previous = this.positions.slice();
     this.rest = this.positions.slice();
 
@@ -142,6 +149,28 @@ export class Cloth {
     this.previous.set(this.rest);
   }
 
+  /**
+   * Moves the clip at `column` to a new place in banner space. Clips are driven, not simulated,
+   * so the cloth follows them the way a curtain follows its hooks along a rail.
+   */
+  moveClip(column: number, x: number, y: number, z: number): void {
+    const k = column * 3;
+    this.positions[k] = this.previous[k] = x;
+    this.positions[k + 1] = this.previous[k + 1] = y;
+    this.positions[k + 2] = this.previous[k + 2] = z;
+  }
+
+  /** Where every particle was hung, as x, y and z in banner space, before any force moved it. */
+  get hung(): Readonly<Float32Array> {
+    return this.rest;
+  }
+
+  /** Where the clip at `column` was hung, in banner space. */
+  clipAt(column: number): readonly [number, number, number] {
+    const k = column * 3;
+    return [this.rest[k]!, this.rest[k + 1]!, this.rest[k + 2]!];
+  }
+
   /** Advances the cloth by `dt` seconds. */
   step(dt: number, forces: ClothForces): void {
     const p = this.positions;
@@ -180,7 +209,7 @@ export class Cloth {
     }
     for (let it = 0; it < ITERATIONS; it++) {
       this.relax();
-      this.straightenRod();
+      if (this.spec.hem === 'rod') this.straightenRod();
     }
     if (forces.poke) this.press(forces.poke);
   }

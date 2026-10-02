@@ -14,6 +14,12 @@ export const CAMERA = {
   lookHeight: 0.1,
   /** Tall screens look further down, so the valley fills the frame instead of the night sky. */
   lookHeightTall: -0.9,
+  /**
+   * At the opening the eye looks nearly level at the curtain hung across the river, rail to
+   * hem in the frame, then tips down to the water as the curtain opens and the flight begins.
+   */
+  openingLookHeight: 0.8,
+  openingLookHeightTall: 0.55,
   /** Vertical field of view in degrees, wider on tall screens so the valley still reads. */
   fov: 52,
   fovTall: 72,

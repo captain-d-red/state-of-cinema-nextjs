@@ -5,8 +5,7 @@
  */
 .hud {
   position: absolute;
-  inset: 0 0 auto 0;
-  height: 100dvh;
+  inset: 0;
   pointer-events: none;
   color: var(--paper);
 }
@@ -168,43 +167,10 @@
   }
 }
 
-.title {
+/* The opening's own instruments sit inside the frame, around the curtain in the scene. */
+.opening {
   position: absolute;
-  inset: calc(var(--gutter) + 2.6rem) var(--gutter) calc(var(--gutter) + 2.6rem);
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-}
-
-.titleLine {
-  margin: 0;
-  font-size: clamp(4rem, 11.6vw, 16rem);
-  font-weight: 450;
-  line-height: 0.92;
-  letter-spacing: -0.035em;
-}
-
-.titleEnd {
-  justify-self: end;
-}
-
-.strap {
-  align-self: center;
-  justify-self: center;
-  max-width: 38ch;
-  margin: 0;
-  font-size: 0.86rem;
-  font-weight: 600;
-  line-height: 1.45;
-  letter-spacing: 0.02em;
-  text-align: center;
-  text-transform: uppercase;
-  animation: fade 900ms 500ms ease both;
-}
-
-@keyframes fade {
-  from {
-    opacity: 0;
-  }
+  inset: 0;
 }
 
 .stat,
@@ -219,7 +185,7 @@
 }
 
 /* On wide screens the pick's copy sits under its glass wall, so the type never covers the poster. */
-@media (min-aspect-ratio: 1/1) {
+@container (aspect-ratio >= 1/1) {
   .pick {
     align-content: end;
     padding-bottom: calc(var(--gutter) + 8.5rem);
@@ -230,7 +196,7 @@
 .pickTitle,
 .outroLine {
   margin: 0;
-  font-size: clamp(2.6rem, 6.6vw, 9rem);
+  font-size: clamp(2.6rem, 6.6cqw, 9rem);
   font-weight: 450;
   line-height: 0.95;
   letter-spacing: -0.03em;
@@ -242,7 +208,7 @@
   bottom: calc(var(--gutter) + 4.4rem);
   translate: -50% 0;
   width: max-content;
-  max-width: calc(100vw - 2 * var(--gutter));
+  max-width: calc(100cqw - 2 * var(--gutter));
   margin: 0;
   font-size: 0.82rem;
   font-weight: 600;
@@ -262,7 +228,7 @@
 
 .byline {
   margin: 0.6rem 0 0;
-  font-size: clamp(1.1rem, 2.2vw, 2.6rem);
+  font-size: clamp(1.1rem, 2.2cqw, 2.6rem);
   font-weight: 450;
   letter-spacing: -0.015em;
   animation: fade 700ms 250ms ease both;
@@ -270,8 +236,8 @@
 
 /* Long titles shrink so the widest still leaves the gutters clear. */
 .pickTitle {
-  max-width: calc(100vw - 2 * var(--gutter));
-  font-size: clamp(2rem, min(6.6vw, calc(150vw / var(--len))), 9rem);
+  max-width: calc(100cqw - 2 * var(--gutter));
+  font-size: clamp(2rem, min(6.6cqw, calc(150cqw / var(--len))), 9rem);
 }
 
 .play,
@@ -340,15 +306,10 @@
 }
 
 /*
- * Short screens, a phone on its side. The opening lines are sized by the height as well as
- * the width so they never meet, the strap gives way to them, and a pick's copy drops to the
- * foot of the frame below its banner with only the title and the play button.
+ * Short frames, a phone on its side or a letterboxed phone. A pick's copy drops to the foot of
+ * the frame below its banner, with only the title and the play button.
  */
-@media (max-height: 520px) and (min-aspect-ratio: 1/1) {
-  .titleLine {
-    font-size: min(11.6vw, 21vh);
-  }
-  .strap,
+@container (height <= 520px) and (aspect-ratio >= 1/1) {
   .kicker,
   .byline,
   .pick .footnote {
@@ -358,14 +319,14 @@
     padding-bottom: calc(var(--gutter) + 2.6rem);
   }
   .pickTitle {
-    font-size: clamp(1.3rem, min(4.4vw, 9vh), 3rem);
+    font-size: clamp(1.3rem, min(4.4cqw, 9cqh), 3rem);
   }
   .play {
     margin-top: 0.8rem;
   }
 }
 
-@media (max-width: 640px) {
+@container (width <= 640px) {
   .credit,
   .wide {
     display: none;

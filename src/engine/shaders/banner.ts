@@ -6,7 +6,7 @@ import { look } from './terrain';
 export const LAMPS = 2;
 
 /** Light from the two uplights, shared by the cloth and the steel. */
-const lamps = glsl`
+export const lamps = glsl`
 uniform vec3 uLampPos[${LAMPS}];
 uniform vec3 uLampDir[${LAMPS}];
 /** How bright the lamps are, zero while they are off, one at full power. */

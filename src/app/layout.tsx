@@ -8,11 +8,11 @@ const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: 'AK47 · The State of Cinema',
-  description: 'Seventy-two films from 2010 to 2025 in numbers and picks, told as one flight over a valley of light.',
+  title: 'AK47 · The State of Experiences',
+  description: 'Seventy-two films from 2010 to 2025 in numbers and picks, told as one flight down a river of light.',
   openGraph: {
-    title: 'AK47 · The State of Cinema',
-    description: 'Seventy-two films in numbers and picks, told as one flight over a valley of light.',
+    title: 'AK47 · The State of Experiences',
+    description: 'Seventy-two films in numbers and picks, told as one flight down a river of light.',
     type: 'website',
   },
   twitter: { card: 'summary_large_image' },

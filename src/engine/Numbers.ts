@@ -116,8 +116,8 @@ export class Numbers {
           uAtlasCells: { value: new Vector2(ATLAS.columns, ATLAS.rows) },
         },
         transparent: true,
+        // Depth tested, so a figure rises out of the river and the opening's curtain hides it.
         depthWrite: false,
-        depthTest: false,
         blending: NormalBlending,
       });
       const points = new Points(geometry, material);

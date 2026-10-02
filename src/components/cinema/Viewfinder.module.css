@@ -1,0 +1,164 @@
+/*
+ * The opening's camera instruments. They share the small interface type and its difference
+ * blend, so they stay legible over the bright water and the dark sky alike.
+ */
+
+/* The record light and the timecode, set under the logotype at the frame's left. */
+.rec {
+  position: absolute;
+  top: calc(var(--gutter) + 2.4rem);
+  left: var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  mix-blend-mode: difference;
+  animation: appear 700ms 600ms ease both;
+}
+
+.light {
+  width: 0.62em;
+  height: 0.62em;
+  fill: var(--rec);
+  /* A recording light pulses once a second, held on longer than it is dimmed. */
+  animation: record 1s steps(1, end) infinite;
+}
+
+.clock {
+  font-feature-settings: 'tnum' 1;
+  opacity: 0.86;
+}
+
+@keyframes record {
+  70% {
+    opacity: 0.25;
+  }
+}
+
+/* The film strip that rolls downward, standing just above the station ticks. */
+.cue {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--gutter) + 4.2rem);
+  width: 0.9rem;
+  height: auto;
+  translate: -50% 0;
+  overflow: visible;
+  mix-blend-mode: difference;
+  animation: appear 900ms 900ms ease both;
+}
+
+.base {
+  fill: rgb(239 232 220 / 0.18);
+}
+
+.hole {
+  fill: var(--paper);
+}
+
+.frame {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 0.6;
+  opacity: 0.7;
+}
+
+/* One frame of film, twelve units, rolls past every 1.4 seconds. */
+.roll {
+  animation: roll 1.4s linear infinite;
+}
+
+@keyframes roll {
+  to {
+    transform: translateY(12px);
+  }
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+}
+
+/*
+ * The focus reticle. It is placed every frame by a transform on its root, so its brackets
+ * open and close with their own transition and never fight the per-frame placement.
+ */
+.reticle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  mix-blend-mode: difference;
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+
+.reticle[data-shown='true'][data-active='true'] {
+  opacity: 1;
+}
+
+.reticle svg {
+  position: absolute;
+  left: -1.4rem;
+  top: -1.4rem;
+  width: 2.8rem;
+  height: 2.8rem;
+  overflow: visible;
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 1.2;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Locked, the brackets close in on the point in focus and the centre pip lights. */
+.reticle[data-locked='true'] svg {
+  transform: scale(0.68);
+}
+
+.pip {
+  fill: var(--paper);
+  stroke: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.reticle[data-locked='true'] .pip {
+  opacity: 1;
+}
+
+.focus {
+  position: absolute;
+  left: 1.3rem;
+  top: 0.9rem;
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  color: var(--paper);
+  font-feature-settings: 'tnum' 1;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.reticle[data-locked='true'] .focus {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .light,
+  .roll {
+    animation: none;
+  }
+  .reticle svg,
+  .pip,
+  .focus {
+    transition: none;
+  }
+}

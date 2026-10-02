@@ -1,7 +1,4 @@
 import {
-  AdditiveBlending,
-  BoxGeometry,
-  ConeGeometry,
   CylinderGeometry,
   DoubleSide,
   GLSL3,
@@ -9,7 +6,6 @@ import {
   Matrix4,
   Mesh,
   PlaneGeometry,
-  Quaternion,
   Raycaster,
   RawShaderMaterial,
   SRGBColorSpace,
@@ -22,18 +18,21 @@ import {
 import type { Film } from '@/data/catalogue';
 import { smoothstep } from '@/lib/math';
 import { Cloth, type ClothSpec, type Poke } from './cloth';
+import { Strike, UP, clip, materials, placeLamps, posts, rail, uplights, type Mount } from './installation';
 import { meshVertex } from './shaders/common';
-import { LAMPS, beamFragment, beamVertex, clothFragment, lensFragment, steelFragment } from './shaders/banner';
+import { LAMPS, clothFragment } from './shaders/banner';
 import type { ValleyUniforms } from './Valley';
 import { CAMERA, RIVER, valleyCentre } from './world';
 
 /**
- * The print is the poster's own two by three, hung with its hem a little above the water.
+ * The print is the poster's own two by three, hung with its hem a little above the water. The
+ * rail, the clips, the cloth and its rod are flown: they hoist up the posts and out of the
+ * frame as the camera leaves, so the camera never flies into the cloth.
  *
- *     ┃━━━━●━━━●━━━●━━━●━━━●━━━━┃   top bar on two posts, six clips
+ *     ┃                           ┃   posts rise far above the rail, out of the frame
+ *     ┃━━━━●━━━●━━━●━━━●━━━●━━━━┃   rail and six clips, flown
  *     ┃ ┌───────────────────────┐ ┃
- *     ┃ │                       │ ┃   satin print 1.28 × 1.92
- *     ┃ │        poster         │ ┃
+ *     ┃ │        poster         │ ┃   satin print 1.28 × 1.92
  *     ┃ └═══════════════════════┘ ┃   weighted hem rod
  *   ◢ ┃           ◣  ◢           ┃ ◣  uplights, standing in the water
  *  ═══┻═══════════════════════════┻═══ water
@@ -41,7 +40,7 @@ import { CAMERA, RIVER, valleyCentre } from './world';
 const WIDTH = 1.28;
 const HEIGHT = 1.92;
 const HEM = 0.16;
-/** The whole installation is drawn at this scale, so its top bar clears the interface's header. */
+/** The whole installation is drawn at this scale, so its rail clears the interface's header. */
 const SCALE = 0.86;
 const SPEC: ClothSpec = {
   columns: 21,
@@ -49,90 +48,21 @@ const SPEC: ClothSpec = {
   width: WIDTH,
   height: HEIGHT,
   clips: [0, 4, 8, 12, 16, 20],
-  rodMass: 20,
+  hem: 'rod',
+  hemMass: 20,
   gather: 0.9,
 };
-const POST = { inset: 0.1, radius: 0.016, above: 0.1 } as const;
+/** How far the flown section hoists, enough to lift the hem above the frame as the camera nears. */
+const HOIST = 3.6;
+const SPAN = WIDTH + 0.2;
 /** Lamps stand ahead of the banner and aim at a point a third of the way down it. */
-const LAMP = { across: 0.5, ahead: 0.8, aim: -0.62 } as const;
+const MOUNTS: readonly Mount[] = ([-1, 1] as const).map((side) => ({
+  at: new Vector3(side * 0.5, -HEIGHT - HEM + 0.07, 0.8),
+  target: new Vector3(side * 0.18, -0.62 * HEIGHT, 0),
+}));
 /** Two substeps a frame at sixty frames a second, so the weave stays stable through a gust. */
 const STEP = 1 / 120;
 const MAX_STEPS = 4;
-/**
- * The light strikes as the camera arrives: a few uneven flickers over a third of a second,
- * the way a cold tungsten filament catches, then steady.
- */
-const STRIKE = [1, 0, 0.8, 0.15, 0.9, 0.55, 1] as const;
-const STRIKE_SECONDS = 0.34;
-
-function steel(uniforms: Record<string, IUniform>): RawShaderMaterial {
-  return new RawShaderMaterial({
-    glslVersion: GLSL3,
-    vertexShader: meshVertex,
-    fragmentShader: steelFragment,
-    uniforms,
-  });
-}
-
-const UP = new Vector3(0, 1, 0);
-
-/** Where an uplight stands in banner space, one either side, and the point on the cloth it aims at. */
-function lampMount(side: -1 | 1): { at: Vector3; target: Vector3 } {
-  return {
-    at: new Vector3(side * LAMP.across, -HEIGHT - HEM + 0.07, LAMP.ahead),
-    target: new Vector3(side * 0.18, LAMP.aim * HEIGHT, 0),
-  };
-}
-
-/** The steel frame: two posts on round feet standing in the water, a top bar and the clips along it. */
-function gantry(metal: RawShaderMaterial): Mesh[] {
-  const reach = HEIGHT + HEM + POST.above;
-  const postX = WIDTH / 2 + POST.inset;
-  const parts: Mesh[] = [];
-  for (const side of [-1, 1]) {
-    const post = new Mesh(new CylinderGeometry(POST.radius, POST.radius, reach, 12), metal);
-    post.position.set(side * postX, POST.above - reach / 2, 0);
-    const foot = new Mesh(new CylinderGeometry(0.075, 0.085, 0.014, 24), metal);
-    foot.position.set(side * postX, -HEIGHT - HEM + 0.007, 0);
-    parts.push(post, foot);
-  }
-  const bar = new Mesh(new CylinderGeometry(0.013, 0.013, postX * 2, 12), metal);
-  bar.rotation.z = Math.PI / 2;
-  bar.position.set(0, 0.045, 0);
-  parts.push(bar);
-  for (const c of SPEC.clips) {
-    const clip = new Mesh(new BoxGeometry(0.024, 0.052, 0.018), metal);
-    clip.position.set((c / (SPEC.columns - 1) - 0.5) * WIDTH, 0.014, 0.004);
-    parts.push(clip);
-  }
-  return parts;
-}
-
-/** Each uplight: a housing on a stake, its glowing lens, and the cone of its beam through the haze. */
-function uplights(metal: RawShaderMaterial, lens: RawShaderMaterial, beam: RawShaderMaterial): Mesh[] {
-  const parts: Mesh[] = [];
-  for (const side of [-1, 1] as const) {
-    const { at, target } = lampMount(side);
-    const aim = target.clone().sub(at).normalize();
-    const turn = new Quaternion().setFromUnitVectors(UP, aim);
-    const housing = new Mesh(new CylinderGeometry(0.034, 0.04, 0.1, 20), metal);
-    housing.position.copy(at);
-    housing.quaternion.copy(turn);
-    const glass = new Mesh(new CylinderGeometry(0.029, 0.029, 0.004, 20), lens);
-    glass.position.copy(at).addScaledVector(aim, 0.051);
-    glass.quaternion.copy(turn);
-    const stake = new Mesh(new CylinderGeometry(0.008, 0.008, 0.07, 8), metal);
-    stake.position.copy(at).setY(at.y - 0.035);
-    // The beam is a cone with its apex at the lamp, reaching most of the way to the cloth.
-    const length = target.distanceTo(at) * 0.95;
-    const cone = new Mesh(new ConeGeometry(0.42, length, 32, 1, true), beam);
-    cone.position.copy(at).addScaledVector(aim, length / 2);
-    cone.quaternion.setFromUnitVectors(UP, aim.clone().negate());
-    cone.renderOrder = 70;
-    parts.push(housing, glass, stake, cone);
-  }
-  return parts;
-}
 
 /** Fetches a poster and decodes it bottom row first, the order a texture with flipY off expects. */
 async function loadPoster(src: string, signal: AbortSignal): Promise<Texture> {
@@ -149,16 +79,18 @@ async function loadPoster(src: string, signal: AbortSignal): Promise<Texture> {
 
 /**
  * A top pick printed on a satin banner and hung as an installation in the river: a steel
- * gantry standing in the water, clips along its top bar, a weighted rod in the hem and two
+ * gantry standing in the water, clips along its rail, a weighted rod in the hem and two
  * uplights that strike as the camera arrives. The cloth is simulated, so the breeze moves it,
  * the camera's passing pushes it and the pointer presses into it.
  */
 export class Banner {
   readonly group = new Group();
+  /** The rail, clips, cloth and rod, which hoist together. */
+  private readonly flown = new Group();
   private readonly cloth = new Cloth(SPEC);
   private readonly fabric: Mesh<PlaneGeometry, RawShaderMaterial>;
   private readonly rod: Mesh<CylinderGeometry, RawShaderMaterial>;
-  private readonly lamp: IUniform<number> = { value: 0 };
+  private readonly strike = new Strike();
   private readonly lampPos = Array.from({ length: LAMPS }, () => new Vector3());
   private readonly lampDir = Array.from({ length: LAMPS }, () => new Vector3());
   private readonly materials: RawShaderMaterial[] = [];
@@ -171,7 +103,6 @@ export class Banner {
   private readonly b = new Vector3();
   private poster: Texture | null = null;
   private owed = 0;
-  private struck = -1;
 
   constructor(
     film: Film,
@@ -179,41 +110,29 @@ export class Banner {
     valley: ValleyUniforms,
     onError: (error: unknown) => void,
   ) {
-    const shared: Record<string, IUniform> = valley;
-    const lights = { uLampPos: { value: this.lampPos }, uLampDir: { value: this.lampDir }, uLamp: this.lamp };
+    const lights = { uLampPos: { value: this.lampPos }, uLampDir: { value: this.lampDir }, uLamp: this.strike.power };
+    const shared: Record<string, IUniform> = { ...valley, ...lights };
     const uPoster: IUniform<Texture | null> = { value: null };
 
-    const geometry = new PlaneGeometry(WIDTH, HEIGHT, SPEC.columns - 1, SPEC.rows - 1);
     const clothMaterial = new RawShaderMaterial({
       glslVersion: GLSL3,
       vertexShader: meshVertex,
       fragmentShader: clothFragment,
-      uniforms: { ...shared, ...lights, uPoster },
+      uniforms: { ...shared, uPoster },
       side: DoubleSide,
     });
-    this.fabric = new Mesh(geometry, clothMaterial);
-    this.fabric.frustumCulled = false;
-
-    const metal = steel({ ...shared, ...lights });
-    this.rod = new Mesh(new CylinderGeometry(0.011, 0.011, WIDTH + 0.05, 12), metal);
-    const lens = new RawShaderMaterial({
-      glslVersion: GLSL3,
-      vertexShader: meshVertex,
-      fragmentShader: lensFragment,
-      uniforms: { uLamp: this.lamp },
-    });
-    const beam = new RawShaderMaterial({
-      glslVersion: GLSL3,
-      vertexShader: beamVertex,
-      fragmentShader: beamFragment,
-      uniforms: { uCamPos: valley.uCamPos, uLamp: this.lamp },
-      transparent: true,
-      depthWrite: false,
-      blending: AdditiveBlending,
-      side: DoubleSide,
-    });
-    this.group.add(...gantry(metal), ...uplights(metal, lens, beam), this.rod, this.fabric);
-    this.materials.push(clothMaterial, metal, lens, beam);
+    this.fabric = new Mesh(new PlaneGeometry(WIDTH, HEIGHT, SPEC.columns - 1, SPEC.rows - 1), clothMaterial);
+    const kit = materials(shared, this.strike.power, valley.uCamPos);
+    this.rod = new Mesh(new CylinderGeometry(0.011, 0.011, WIDTH + 0.05, 12), kit.steel);
+    this.flown.add(rail(kit.steel, SPAN), this.fabric, this.rod);
+    for (const c of SPEC.clips) {
+      const jaw = clip(kit.steel);
+      jaw.position.set((c / (SPEC.columns - 1) - 0.5) * WIDTH * SPEC.gather, 0.014, 0.004);
+      this.flown.add(jaw);
+    }
+    this.group.add(...posts(kit.steel, { span: SPAN, drop: HEIGHT + HEM, above: HOIST + 0.3 }));
+    this.group.add(...uplights(kit, MOUNTS), this.flown);
+    this.materials.push(clothMaterial, kit.steel, kit.lens, kit.beam);
     this.group.traverse((o) => (o.frustumCulled = false));
 
     this.group.scale.setScalar(SCALE);
@@ -222,12 +141,7 @@ export class Banner {
     this.group.rotation.y = Math.atan2(valleyCentre(z + CAMERA.lookAhead) - valleyCentre(z), CAMERA.lookAhead);
     this.group.visible = false;
     this.group.updateMatrixWorld(true);
-    ([-1, 1] as const).forEach((side, i) => {
-      const { at, target } = lampMount(side);
-      const world = this.group.matrixWorld;
-      this.lampPos[i]!.copy(at).applyMatrix4(world);
-      this.lampDir[i]!.copy(target).applyMatrix4(world).sub(this.lampPos[i]!).normalize();
-    });
+    placeLamps(MOUNTS, this.group.matrixWorld, this.lampPos, this.lampDir);
     // The cloth settles under its own weight before anyone sees it.
     for (let i = 0; i < 240; i++) this.cloth.step(STEP, { gravity: 9.8, wind: [0, 0, 0], poke: null });
     this.drape();
@@ -249,7 +163,7 @@ export class Banner {
 
   /** Where the uplights stand in the world, and how bright they are, for the water they light. */
   get lamps(): { readonly positions: readonly Vector3[]; readonly power: number } {
-    return { positions: this.lampPos, power: this.lamp.value };
+    return { positions: this.lampPos, power: this.strike.power.value };
   }
 
   /** The print, once it has arrived, so the engine can upload it before the banner is first seen. */
@@ -258,29 +172,22 @@ export class Banner {
   }
 
   /**
-   * Strikes the lamps as the camera arrives and steps the cloth. `speed` is the camera's speed
-   * in units a second, whose passing air pushes the banner, and `pointer` is in normalised
-   * device coordinates with its presence in z.
+   * Strikes the lamps as the camera arrives, hoists the banner as it leaves, and steps the
+   * cloth. `speed` is the camera's speed in units a second, whose passing air pushes the
+   * banner, and `pointer` is in normalised device coordinates with its presence in z.
    */
   update(time: number, cameraZ: number, speed: number, camera: Camera, pointer: Vector3, dt: number, still: boolean) {
     const rel = cameraZ - CAMERA.lookAhead - this.z;
     this.group.visible = rel > -4 && rel < 14 && this.poster !== null;
     if (!this.group.visible) {
-      this.struck = -1;
-      this.lamp.value = 0;
+      this.strike.off();
       return;
     }
-    const wanted = smoothstep(7, 2.5, rel);
-    if (wanted > 0.5 && this.struck < 0) this.struck = time;
-    if (wanted < 0.2) this.struck = -1;
-    const since = this.struck < 0 ? Infinity : time - this.struck;
-    const flicker =
-      still || since >= STRIKE_SECONDS ? 1 : STRIKE[Math.floor((since / STRIKE_SECONDS) * STRIKE.length)]!;
-    this.lamp.value = wanted * flicker;
+    this.strike.update(smoothstep(7, 2.5, rel), time, still);
+    // Leaving, the flown section rises up the posts on an ease, clear before the camera arrives.
+    this.flown.position.y = HOIST * smoothstep(-0.6, -3.4, rel);
     if (still) return;
 
-    // A light breeze down the river, gusting on a few slow incommensurate beats, plus the air
-    // the camera pushes ahead of itself as it flies close.
     // A breeze along the river that turns back and forth on two slow incommensurate beats, so
     // the banner sways and breathes instead of leaning, plus the air the camera pushes ahead
     // of itself as it flies close.
@@ -290,7 +197,6 @@ export class Banner {
     const poke = this.pokeFrom(camera, pointer);
     this.owed = Math.min(this.owed + dt, MAX_STEPS * STEP);
     for (; this.owed >= STEP; this.owed -= STEP) this.cloth.step(STEP, { gravity: 9.8, wind, poke });
-
     this.drape();
   }
 
@@ -300,14 +206,20 @@ export class Banner {
     (position.array as Float32Array).set(this.cloth.positions);
     position.needsUpdate = true;
     this.fabric.geometry.computeVertexNormals();
-    this.placeRod();
+    const p = this.cloth.positions;
+    const first = (SPEC.rows - 1) * SPEC.columns;
+    const last = first + SPEC.columns - 1;
+    this.a.set(p[first * 3]!, p[first * 3 + 1]!, p[first * 3 + 2]!);
+    this.b.set(p[last * 3]!, p[last * 3 + 1]!, p[last * 3 + 2]!);
+    this.rod.position.copy(this.a).add(this.b).multiplyScalar(0.5);
+    this.rod.quaternion.setFromUnitVectors(UP, this.b.sub(this.a).normalize());
   }
 
-  /** The pointer's ray in banner space while it is over the print, or null. */
+  /** The pointer's ray in the cloth's space while it is over the print, or null. */
   private pokeFrom(camera: Camera, pointer: Vector3): Poke | null {
     if (pointer.z < 0.5) return null;
     this.raycaster.setFromCamera(new Vector2(pointer.x, pointer.y), camera);
-    this.inverse.copy(this.group.matrixWorld).invert();
+    this.inverse.copy(this.flown.matrixWorld).invert();
     this.origin.copy(this.raycaster.ray.origin).applyMatrix4(this.inverse);
     this.direction.copy(this.raycaster.ray.direction).transformDirection(this.inverse);
     if (Math.abs(this.direction.z) < 1e-4) return null;
@@ -321,16 +233,6 @@ export class Banner {
       radius: 0.2,
       depth: 0.14,
     };
-  }
-
-  private placeRod(): void {
-    const p = this.cloth.positions;
-    const first = (SPEC.rows - 1) * SPEC.columns;
-    const last = first + SPEC.columns - 1;
-    this.a.set(p[first * 3]!, p[first * 3 + 1]!, p[first * 3 + 2]!);
-    this.b.set(p[last * 3]!, p[last * 3 + 1]!, p[last * 3 + 2]!);
-    this.rod.position.copy(this.a).add(this.b).multiplyScalar(0.5);
-    this.rod.quaternion.setFromUnitVectors(UP, this.b.sub(this.a).normalize());
   }
 
   dispose(): void {

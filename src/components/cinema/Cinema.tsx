@@ -13,6 +13,7 @@ import styles from './Cinema.module.css';
 import { Hud } from './Hud';
 import { Logotype } from './Logotype';
 import { TrailerDialog } from './TrailerDialog';
+import { FocusReticle, type ReticleHandle } from './Viewfinder';
 
 type Status = 'starting' | 'running' | 'unsupported';
 
@@ -21,6 +22,16 @@ const COUNT = story.length;
 /** The last pick in the story is number one, the film the outro offers to play. */
 const topPick = story.flatMap((s) => (s.kind === 'pick' ? [s.film] : [])).at(-1) ?? null;
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+/** Frames the stage as a true 16:9 with black bars, for recording. False lets it fill the window. */
+const LETTERBOX = true;
+/** What the opening's curtain is printed with: the title in foil, small lines in ink at its corners. */
+const CURTAIN = {
+  kicker: 'Now showing',
+  corner: 'Seventy-two films · 2010 to 2025',
+  title: ['The state', 'of experiences'],
+  foot: 'Sixteen years of cinema',
+  cue: 'A flight in seven reels',
+} as const;
 
 /**
  * The page's one moving part. React owns the structure and the station in view, while the
@@ -34,6 +45,7 @@ export function Cinema() {
   const [status, setStatus] = useState<Status>('starting');
   const [started, setStarted] = useState(false);
   const countRef = useRef<HTMLSpanElement>(null);
+  const reticleRef = useRef<ReticleHandle>(null);
   const [playing, setPlaying] = useState<Film | null>(null);
   const [soundOn, setSoundOn] = useState(false);
   const soundRef = useRef<Sound | null>(null);
@@ -52,12 +64,15 @@ export function Cinema() {
     let shown = -1;
     let hovered: number | null = null;
     let began = false;
+    let lastTime = 0;
 
     jumpRef.current = (target) => {
       const i = clamp(Math.round(target), 0, COUNT - 1);
       const distance = Math.abs(i - lenis.progress * (COUNT - 1));
+      // Leaving the opening takes longer, because the curtain opens before the flight begins.
+      const curtain = lenis.progress * (COUNT - 1) < 0.5 && i > 0 ? 1.4 : 0;
       lenis.scrollTo((i / (COUNT - 1)) * lenis.limit, {
-        duration: reducedMotion ? 0 : clamp(0.9 + distance * 0.3, 0.9, 3),
+        duration: reducedMotion ? 0 : clamp(0.9 + distance * 0.3, 0.9, 3) + curtain,
         easing: easeInOutCubic,
       });
     };
@@ -116,6 +131,16 @@ export function Cinema() {
       });
       taps = [];
       hovered = frame.hoveredFilm;
+      // The reticle reads the scene under a mouse at the opening, in the stage's own pixels.
+      const aiming = shown === 0 && pointer.active && hovered === null;
+      reticleRef.current?.update(
+        aiming
+          ? { x: (pointer.x * 0.5 + 0.5) * canvas.clientWidth, y: (0.5 - pointer.y * 0.5) * canvas.clientHeight }
+          : null,
+        frame.focus,
+        (time - lastTime) / 1000,
+      );
+      lastTime = time;
       if (!began) {
         if (countRef.current) countRef.current.textContent = String(Math.round(frame.loaded * 100));
         if (frame.started) {
@@ -140,6 +165,7 @@ export function Cinema() {
           catalogue,
           story,
           fontFamily: uiFont.style.fontFamily,
+          curtain: CURTAIN,
           reducedMotion,
           onError: (error) => console.error(error),
         });
@@ -207,8 +233,9 @@ export function Cinema() {
 
   return (
     <div className={styles.root} data-status={status}>
-      <div className={styles.stage}>
+      <div className={styles.stage} data-frame={LETTERBOX ? '16:9' : undefined}>
         <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" />
+        <FocusReticle ref={reticleRef} shown={started && station === 0} />
         {started && (
           <Hud
             story={story}

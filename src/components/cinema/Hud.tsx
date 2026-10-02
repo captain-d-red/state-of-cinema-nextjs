@@ -4,6 +4,7 @@ import type { Film } from '@/data/catalogue';
 import type { Station } from '@/data/story';
 import styles from './Hud.module.css';
 import { Logotype } from './Logotype';
+import { ScrollCue, Timecode } from './Viewfinder';
 
 interface HudProps {
   story: readonly Station[];
@@ -37,17 +38,15 @@ function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | 
   switch (station.kind) {
     case 'title':
       return (
-        <div className={styles.title} key="title">
-          <h1 className={styles.titleLine}>
-            <Letters text="The state" />
-          </h1>
-          <p className={styles.strap}>
-            Seventy-two films from sixteen years of cinema. Fly the valley to count them, meet the three we would watch
-            tonight, and find every one on the reel.
+        <div className={styles.opening} key="title">
+          {/* The title is printed on the curtain in the scene, so only assistive technology reads it here. */}
+          <h1 className="sr-only">The state of experiences</h1>
+          <p className="sr-only">
+            Seventy-two films from sixteen years of cinema. Open the curtain to fly the river, count them, meet the
+            three we would watch tonight, and find every one on the reel.
           </p>
-          <p className={`${styles.titleLine} ${styles.titleEnd}`} aria-hidden="true">
-            <Letters text="of cinema" delay={160} />
-          </p>
+          <Timecode />
+          <ScrollCue />
         </div>
       );
     case 'stat':
@@ -98,9 +97,9 @@ function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | 
   }
 }
 
-/** The status line reads like a projection booth: waiting to roll, rolling, then the last reel. */
+/** The status line reads like a projection booth: waiting for the curtain, rolling, then the last reel. */
 const statusFor = (index: number, count: number): string =>
-  index === 0 ? 'Scroll to roll' : index >= count - 2 ? 'Last reel' : `Reel ${index} of ${count - 2}`;
+  index === 0 ? 'Scroll to open' : index >= count - 2 ? 'Last reel' : `Reel ${index} of ${count - 2}`;
 
 /**
  * The interface over the flight: the station's copy in the centre, and the status, mark,
@@ -164,7 +163,7 @@ export function Hud({ story, index, topPick, soundOn, onToggleSound, onPlay, onJ
             />
           ))}
         </nav>
-        <p className={styles.credit}>A film by AK47</p>
+        <p className={styles.credit}>An experience by AK47</p>
       </footer>
     </div>
   );

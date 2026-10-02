@@ -1,7 +1,8 @@
 /*
  * The stage holds the scene and its interface, fixed to the window while the page scrolls
  * beneath it. It is as tall as the large viewport, so a phone's toolbar sliding in and out
- * never resizes the canvas, and the interface inside it follows the dynamic viewport instead.
+ * never resizes the canvas. It is a size container, so the interface measures itself against
+ * the stage rather than the window, and composes the same whether or not the stage is framed.
  */
 .root {
   position: relative;
@@ -15,6 +16,23 @@
   height: 100lvh;
   overflow: hidden;
   background: var(--ink);
+  container-type: size;
+}
+
+/*
+ * Framed, the stage is locked to 16:9 and centred, with black bars on whichever sides the
+ * window has to spare, so a screen recording crops exactly. Its size moves in whole steps of
+ * 64 by 36 pixels and its offset in whole steps of 4, which keeps it exactly 16:9 and on the
+ * device pixel grid at every display scale from 100 to 200 percent.
+ */
+.stage[data-frame='16:9'] {
+  --step: round(down, min(100vw / 64, 100lvh / 36), 1px);
+  --w: calc(var(--step) * 64);
+  --h: calc(var(--step) * 36);
+  left: round(down, calc((100vw - var(--w)) / 2), 4px);
+  top: round(down, calc((100lvh - var(--h)) / 2), 4px);
+  width: var(--w);
+  height: var(--h);
 }
 
 .canvas {
