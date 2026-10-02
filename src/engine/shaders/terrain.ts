@@ -163,7 +163,7 @@ out vec4 fragColor;
 const vec3 CREST = vec3(0.0036, 0.0045, 0.0065);
 /** Mica grains per world unit along each axis, and the share of them that are reflective. */
 const float GRAIN = 90.0;
-const float MICA = 0.16;
+const float MICA = 0.22;
 
 /**
  * One grain of mica per cell, a tiny mirror tilted at random. It flashes when the light ahead
@@ -175,8 +175,9 @@ float glitter(vec3 world, vec3 n, vec3 v, float torch) {
   vec2 cell = floor(p);
   vec2 jitter = hash22(cell) - 0.5;
   float present = step(1.0 - MICA * (1.0 + 2.0 * torch), hash12(cell + 17.0));
-  vec3 tilt = normalize(n + vec3(jitter.x, 0.0, jitter.y) * 1.5);
-  float flash = pow(max(dot(reflect(-v, tilt), LIGHT), 0.0), 48.0);
+  // Grains lie at all angles, so some face the eye looking down at the shore as well as the far slopes.
+  vec3 tilt = normalize(n + vec3(jitter.x, 0.0, jitter.y) * 2.4);
+  float flash = pow(max(dot(reflect(-v, tilt), LIGHT), 0.0), 30.0);
   float speck = 1.0 - smoothstep(0.12, 0.34, length(fract(p) - 0.5 - jitter * 0.3));
   float resolved = 1.0 - smoothstep(0.35, 0.9, max(fwidth(p.x), fwidth(p.y)));
   return flash * present * speck * resolved;
@@ -222,7 +223,7 @@ void main() {
   float torch = exp(-dot(off, off) / 0.35) * uHover.z;
   float near = 1.0 - smoothstep(2.5, 9.0, length(toEye));
   float spark = glitter(vWorld, surface, v, torch) * near * smoothstep(0.6, 1.0, uIntro);
-  lit += mix(uGlow, vec3(1.0), 0.55) * mix(vec3(1.0), coat, 0.6) * spark * (1.4 + 4.0 * torch);
+  lit += mix(uGlow, vec3(1.0), 0.55) * mix(vec3(1.0), coat, 0.6) * spark * (2.0 + 4.0 * torch);
   lit += uGlow * coat * torch * 0.05;
 
   lit += hazeTo(vWorld, 1.0 - fog) * coat;
