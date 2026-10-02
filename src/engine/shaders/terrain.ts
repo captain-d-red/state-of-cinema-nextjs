@@ -1,3 +1,4 @@
+import { MAX_HAZE_STEPS } from '../quality';
 import { TERRAIN } from '../world';
 import { f, glsl, header } from './common';
 import { field } from './field';
@@ -89,7 +90,8 @@ export const haze = glsl`
 uniform sampler2D uRidges;
 uniform vec3 uRidgeRect;
 
-const int HAZE_STEPS = 18;
+/** Steps of the march for this pass, fewer on phones and in the reflection, within the loop's bound. */
+uniform int uHazeSteps;
 const float HAZE_REACH = 11.0;
 
 float ridgeAt(vec2 xz) {
@@ -104,11 +106,12 @@ vec3 hazeTo(vec3 world, float focus) {
   float len = length(toSurface);
   vec3 dir = toSurface / len;
   float reach = min(len, HAZE_REACH);
-  float stride = reach / float(HAZE_STEPS);
+  float stride = reach / float(uHazeSteps);
   // A per-pixel offset turns the banding of a short march into fine noise.
   float t = hash12(gl_FragCoord.xy) * stride;
   float sum = 0.0;
-  for (int i = 0; i < HAZE_STEPS; i++) {
+  for (int i = 0; i < ${MAX_HAZE_STEPS}; i++) {
+    if (i >= uHazeSteps) break;
     vec3 p = uCamPos + dir * t;
     if (p.y > 0.0) {
       float near = 1.0 - smoothstep(1.4 * 0.6, 6.6, length(p.xz - uFocus));

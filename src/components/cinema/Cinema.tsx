@@ -6,6 +6,7 @@ import { catalogue, type Film } from '@/data/catalogue';
 import { CATEGORIES } from '@/data/platform';
 import { buildStory } from '@/data/story';
 import { Engine } from '@/engine/Engine';
+import { QUALITY, pickQuality, type Quality } from '@/engine/quality';
 import { SCROLL_PER_STATION } from '@/engine/scroll';
 import { uiFont } from '@/lib/fonts';
 import { clamp } from '@/lib/math';
@@ -22,6 +23,19 @@ const story = buildStory(catalogue);
 const COUNT = story.length;
 /** The last pick in the story is number one, the film the outro offers to play. */
 const topPick = story.flatMap((s) => (s.kind === 'pick' ? [s.film] : [])).at(-1) ?? null;
+/**
+ * The quality profile for this device. `?quality=full` or `?quality=handheld` overrides the
+ * choice, so the two can be compared on the same phone.
+ */
+function chooseQuality(): Quality {
+  const forced = new URLSearchParams(window.location.search).get('quality');
+  if (forced === 'full' || forced === 'handheld') return QUALITY[forced];
+  return pickQuality({
+    coarsePointer: window.matchMedia('(pointer: coarse)').matches,
+    shortSide: Math.min(window.screen.width, window.screen.height),
+  });
+}
+
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 /** Frames the stage as a true 16:9 with black bars, for recording. False lets it fill the window. */
 const LETTERBOX = true;
@@ -47,6 +61,7 @@ export function Cinema() {
   const [started, setStarted] = useState(false);
   const countRef = useRef<HTMLSpanElement>(null);
   const reticleRef = useRef<ReticleHandle>(null);
+  const meterRef = useRef<HTMLOutputElement>(null);
   const [playing, setPlaying] = useState<Film | null>(null);
   const [soundOn, setSoundOn] = useState(false);
   const soundRef = useRef<Sound | null>(null);
@@ -55,6 +70,11 @@ export function Cinema() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const quality = chooseQuality();
+    document.documentElement.dataset.quality = quality.name;
+    const meter = new URLSearchParams(window.location.search).has('fps') ? meterRef.current : null;
+    let meterFrames = 0;
+    let meterSince = 0;
     const lenis = new Lenis({ autoRaf: false, lerp: reducedMotion ? 1 : 0.08, wheelMultiplier: 0.9 });
     lenisRef.current = lenis;
     const pointer = { x: 0, y: 0, active: false, down: false };
@@ -163,6 +183,15 @@ export function Cinema() {
         }
       }
       soundRef.current?.update(frame);
+      if (meter && engine) {
+        meterFrames += 1;
+        if (time - meterSince >= 500) {
+          const fps = (meterFrames * 1000) / (time - meterSince);
+          meter.textContent = `${fps.toFixed(0)} fps · ${quality.name} · ${engine.renderRatio.toFixed(2)}×`;
+          meterFrames = 0;
+          meterSince = time;
+        }
+      }
       canvas.style.cursor =
         frame.grip === 'held' ? 'grabbing' : frame.grip === 'over' ? 'grab' : hovered !== null ? 'pointer' : '';
       if (frame.station !== shown) {
@@ -182,6 +211,7 @@ export function Cinema() {
           fontFamily: uiFont.style.fontFamily,
           curtain: CURTAIN,
           reducedMotion,
+          quality,
           onError: (error) => console.error(error),
         });
       } catch (error) {
@@ -251,6 +281,8 @@ export function Cinema() {
       <div className={styles.stage} data-frame={LETTERBOX ? '16:9' : undefined}>
         <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" />
         <FocusReticle ref={reticleRef} shown={started && station === 0} />
+        {/* Frame meter, shown with ?fps in the address, for checking the rate on a real phone. */}
+        <output ref={meterRef} className={styles.meter} aria-hidden="true" />
         {started && (
           <Hud
             story={story}

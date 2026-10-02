@@ -10,9 +10,6 @@ import {
 } from 'three';
 import { createHalfFloatTarget } from './gl';
 
-/** The reflection renders at this share of the drawing buffer on each axis, since ripples blur it anyway. */
-const SCALE = 0.5;
-
 /**
  * The scene as seen in the water: the camera mirrored through the plane y = level, rendered
  * into its own target. The mirrored camera's near plane is tilted onto the water with an
@@ -39,12 +36,16 @@ export class Mirror {
   private readonly rotation = new Matrix4();
   private static readonly BIAS = new Matrix4().set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1);
 
-  constructor(private readonly level: number) {
+  /** `scale` is the reflection's share of the drawing buffer on each axis, low since ripples blur it anyway. */
+  constructor(
+    private readonly level: number,
+    private readonly scale: number,
+  ) {
     this.target = createHalfFloatTarget(1, 1, { depthBuffer: true });
   }
 
   resize(width: number, height: number): void {
-    this.target.setSize(Math.max(1, Math.round(width * SCALE)), Math.max(1, Math.round(height * SCALE)));
+    this.target.setSize(Math.max(1, Math.round(width * this.scale)), Math.max(1, Math.round(height * this.scale)));
   }
 
   /** Where the mirrored eye stands, for shaders that light from the viewer's position. */

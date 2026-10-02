@@ -23,6 +23,8 @@ const SIZES = {
   tablet: { width: 1180, height: 820, deviceScaleFactor: 2 },
   tabletPortrait: { width: 820, height: 1180, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
   phone: { width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
+  iphone16promax: { width: 440, height: 956, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
+  iphone16promaxLandscape: { width: 956, height: 440, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
   android: { width: 412, height: 915, deviceScaleFactor: 2.625, isMobile: true, hasTouch: true },
   phoneSmall: { width: 375, height: 667, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
   phoneLandscape: { width: 844, height: 390, deviceScaleFactor: 3, isMobile: true, hasTouch: true },

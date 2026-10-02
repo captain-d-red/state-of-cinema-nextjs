@@ -17,7 +17,7 @@ import { bloomExtractFragment, blurFragment, postFragment } from './shaders/post
  * with four-sample antialiasing, its brightest light is pulled out and blurred at a quarter of
  * the resolution, and one final pass bends, splits, blooms, grades and encodes the image.
  *
- *   scene ─► HDR ×4 MSAA ─┬────────────────────────────────────────► post ─► screen
+ *   scene ─► HDR MSAA   ─┬────────────────────────────────────────► post ─► screen
  *                         └─► extract ─► blur x ─► blur y (¼ res) ──┘
  */
 export class Lens {
@@ -28,8 +28,8 @@ export class Lens {
   private readonly steps: { x: IUniform<Vector2>; y: IUniform<Vector2> };
   private readonly post: Record<string, IUniform>;
 
-  constructor(screen: BufferGeometry) {
-    this.sceneTarget = createHalfFloatTarget(1, 1, { depthBuffer: true, samples: 4 });
+  constructor(screen: BufferGeometry, samples: number) {
+    this.sceneTarget = createHalfFloatTarget(1, 1, { depthBuffer: true, samples });
     this.bloom = [createHalfFloatTarget(1, 1), createHalfFloatTarget(1, 1)];
     this.steps = { x: { value: new Vector2() }, y: { value: new Vector2() } };
     this.passes.extract.add(

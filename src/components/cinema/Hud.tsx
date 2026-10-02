@@ -53,7 +53,7 @@ function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | 
     case 'stat':
       return (
         <div className={styles.stat} key={station.label}>
-          <h2 className={styles.statLabel}>
+          <h2 className={styles.statLabel} style={{ '--len': station.label.length }}>
             <Letters text={station.label} />
             {/* The figure in the scene already shows the number, so only assistive technology reads it here. */}
             <span className="sr-only">: {station.value}</span>
@@ -83,8 +83,8 @@ function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | 
     case 'outro':
       return (
         <div className={styles.outro} key="outro">
-          <h2 className={styles.outroLine}>
-            <Letters text="Your first night is on us" />
+          <h2 className={styles.outroLine} style={{ '--len': OUTRO.length }}>
+            <Letters text={OUTRO} />
           </h2>
           {topPick && (
             <button type="button" className={styles.cta} onClick={() => onPlay(topPick)}>
@@ -99,6 +99,9 @@ function Copy({ station, topPick, onPlay }: { station: Station; topPick: Film | 
       );
   }
 }
+
+/** The invitation the flight closes on. */
+const OUTRO = 'Your first night is on us';
 
 /** The status line reads like a projection booth: waiting for the curtain, rolling, then the last reel. */
 const statusFor = (index: number, count: number): string =>

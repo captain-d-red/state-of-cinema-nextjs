@@ -20,6 +20,12 @@ export const CAMERA = {
    */
   openingLookHeight: 0.8,
   openingLookHeightTall: 0.55,
+  /**
+   * A tall screen sees too narrow a slice to hold the whole curtain from where a wide one
+   * stands, so at the opening its eye stands this much further back, and the curtain's 3.6
+   * units fit inside the frame's width.
+   */
+  openingStepBackTall: 2.2,
   /** Vertical field of view in degrees, wider on tall screens so the valley still reads. */
   fov: 52,
   fovTall: 72,

@@ -25,6 +25,7 @@ import type { Grip } from './hand';
 import { createFullscreenGeometry } from './gl';
 import { Lens } from './Lens';
 import { Mirror } from './Mirror';
+import { FrameGovernor, type Quality } from './quality';
 import type { CurtainCopy } from './print';
 import { Numbers } from './Numbers';
 import { Reel } from './Reel';
@@ -40,6 +41,8 @@ export interface EngineOptions {
   /** What the opening's curtain is printed with. */
   readonly curtain: CurtainCopy;
   readonly reducedMotion: boolean;
+  /** How much work each frame may do, picked for the device. */
+  readonly quality: Quality;
   readonly onError: (error: unknown) => void;
 }
 
@@ -107,7 +110,12 @@ export class Engine {
   private readonly scene = new Scene();
   private readonly screen: BufferGeometry;
   private readonly lens: Lens;
-  private readonly mirror = new Mirror(RIVER.level);
+  private readonly mirror: Mirror;
+  private readonly quality: Quality;
+  private readonly governor: FrameGovernor;
+  private deviceRatio = 1;
+  private width = 1;
+  private height = 1;
   private readonly valley: Valley;
   private readonly numbers: Numbers;
   private readonly banners: Banner[];
@@ -151,7 +159,10 @@ export class Engine {
   /** The pointer's path over the water this frame, from where it was to where it is. */
   private readonly path: [number, number, number, number] = [0, 0, 0, 0];
 
-  constructor({ canvas, catalogue, story, fontFamily, curtain, reducedMotion, onError }: EngineOptions) {
+  constructor({ canvas, catalogue, story, fontFamily, curtain, reducedMotion, quality, onError }: EngineOptions) {
+    this.quality = quality;
+    this.governor = new FrameGovernor(quality.maxPixelRatio);
+    this.mirror = new Mirror(RIVER.level, quality.mirrorScale);
     this.story = story;
     this.reducedMotion = reducedMotion;
     this.tints = story.map((s) => linearSrgbToOklab(hexToLinear(s.tint)));
@@ -170,9 +181,9 @@ export class Engine {
     this.renderer.setClearColor(new Color(...background), 1);
 
     this.screen = createFullscreenGeometry();
-    this.lens = new Lens(this.screen);
+    this.lens = new Lens(this.screen, quality.samples);
 
-    this.valley = new Valley(this.screen, this.mirror, this.cursor);
+    this.valley = new Valley(this.screen, this.mirror, this.cursor, quality.dust);
     this.valley.uniforms.uBackground.value.set(...background);
     this.scene.add(this.valley.group);
 
@@ -221,12 +232,20 @@ export class Engine {
       });
   }
 
+  /** The pixel ratio the scene is drawn at, after the profile, the budget and the governor. */
+  get renderRatio(): number {
+    return this.renderer.getPixelRatio();
+  }
+
   /** Sizes the drawing buffer to the canvas, trading pixel ratio for a fixed pixel budget. */
   resize(width: number, height: number, devicePixelRatio: number): void {
     const w0 = Math.max(1, width);
     const h0 = Math.max(1, height);
     this.aspect = w0 / h0;
-    let dpr = Math.min(devicePixelRatio, 2);
+    this.width = width;
+    this.height = height;
+    this.deviceRatio = devicePixelRatio;
+    let dpr = Math.min(devicePixelRatio, this.governor.pixelRatio);
     while (dpr > 1 && w0 * h0 * dpr * dpr > PIXEL_BUDGET) dpr -= 0.125;
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w0, h0, false);
@@ -242,7 +261,8 @@ export class Engine {
   frame(timeMs: number, input: EngineInput): EngineFrame {
     const time = timeMs / 1000;
     this.firstTime ??= time;
-    const dt = clamp(time - (this.lastTime || time), 1 / 240, 1 / 20);
+    const interval = time - (this.lastTime || time);
+    const dt = clamp(interval, 1 / 240, 1 / 20);
     this.lastTime = time;
     // The intro waits for the images, so it plays out in front of the visitor instead of under
     // the loader. A missing image must never strand anyone, so it starts anyway after a while.
@@ -256,6 +276,11 @@ export class Engine {
     const age = this.startTime === null ? 0 : time - this.startTime;
     const linear = this.reducedMotion ? 1 : clamp(age / INTRO_SECONDS, 0, 1);
     const intro = 1 - (1 - linear) ** 3;
+    // Once the intro has played, the governor watches the frame rate and lowers the density
+    // if this device cannot hold it.
+    if (intro >= 1 && this.governor.sample(interval * 1000, timeMs) !== null) {
+      this.resize(this.width, this.height, this.deviceRatio);
+    }
 
     const count = this.story.length;
     const position = dwell(clamp(input.position, 0, count - 1));
@@ -312,8 +337,10 @@ export class Engine {
     // The reflection is lit from the mirrored eye, so view-dependent light lands where it would in water.
     this.mirror.place(this.camera);
     u.uCamPos.value.copy(this.mirror.position);
+    u.uHazeSteps.value = this.quality.mirrorHazeSteps;
     this.mirror.render(this.renderer, this.scene, this.valley.river);
     u.uCamPos.value.copy(this.camera.position);
+    u.uHazeSteps.value = this.quality.hazeSteps;
     this.lens.render(this.renderer, this.scene, this.camera, time, this.reducedMotion ? 1 : smoothstep(0, 0.8, age));
     return {
       position,
@@ -387,7 +414,9 @@ export class Engine {
     // The camera rides the valley's centre line and looks down it to where the line will be.
     const here = valleyCentre(z);
     const ahead = valleyCentre(z - CAMERA.lookAhead);
-    this.camera.position.set(here + this.orbit.x * 0.22, CAMERA.height + drop + this.orbit.y * 0.1, z);
+    const tallOpening = smoothstep(cameraZ(1), cameraZ(0), z);
+    const back = this.aspect < 0.8 ? CAMERA.openingStepBackTall * tallOpening * tallOpening : 0;
+    this.camera.position.set(here + this.orbit.x * 0.22, CAMERA.height + drop + this.orbit.y * 0.1, z + back);
     const tall = this.aspect < 0.8;
     const opening = smoothstep(cameraZ(1), cameraZ(0), z);
     const river = tall ? CAMERA.lookHeightTall : CAMERA.lookHeight;

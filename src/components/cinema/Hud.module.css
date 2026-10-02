@@ -196,7 +196,8 @@
 .pickTitle,
 .outroLine {
   margin: 0;
-  font-size: clamp(2.6rem, 6.6cqw, 9rem);
+  /* Long lines shrink so the widest still leaves the gutters clear on a phone. */
+  font-size: clamp(1.8rem, min(6.6cqw, calc(150cqw / var(--len, 12))), 9rem);
   font-weight: 450;
   line-height: 0.95;
   letter-spacing: -0.03em;
@@ -327,6 +328,11 @@
 }
 
 @container (width <= 640px) {
+  /* On a phone the big lines may take a larger share of the narrow width, up to their length. */
+  .statLabel,
+  .outroLine {
+    font-size: clamp(1.8rem, min(9.5cqw, calc(160cqw / var(--len, 12))), 4rem);
+  }
   .credit,
   .wide {
     display: none;

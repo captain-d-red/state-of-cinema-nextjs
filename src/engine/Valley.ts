@@ -56,12 +56,13 @@ export type ValleyUniforms = {
   /** The uplights of the nearest banner, which light the water around their feet. */
   readonly uLampPos: IUniform<Vector3[]>;
   readonly uLampPower: IUniform<number>;
+  /** Steps of the haze march for the pass being drawn. */
+  readonly uHazeSteps: IUniform<number>;
 };
 
 /** Dots per world unit along each axis, and the square they cover around the camera. */
 const DOT_SPACING = 0.17;
 const DOT_WINDOW = 40;
-const DUST_COUNT = 3000;
 const DUST_RADIUS = 16;
 /** The filament texture covers this many world units around the lit patch. */
 const RIDGE_SPAN = 24;
@@ -102,10 +103,10 @@ function dotGrid(): BufferGeometry {
   return geometry;
 }
 
-function dustCloud(): BufferGeometry {
-  const positions = new Float32Array(DUST_COUNT * 3);
-  const seeds = new Float32Array(DUST_COUNT * 2);
-  for (let i = 0; i < DUST_COUNT; i++) {
+function dustCloud(count: number): BufferGeometry {
+  const positions = new Float32Array(count * 3);
+  const seeds = new Float32Array(count * 2);
+  for (let i = 0; i < count; i++) {
     // Square root of a uniform radius spreads the motes evenly over the disc.
     const r = Math.sqrt(Math.random()) * DUST_RADIUS;
     const a = Math.random() * Math.PI * 2;
@@ -155,7 +156,7 @@ export class Valley {
   readonly pulse = new Vector3(0, 0, -10);
   readonly aspect: IUniform<number> = { value: 1 };
 
-  constructor(screen: BufferGeometry, mirror: Mirror, cursor: IUniform<Vector3>) {
+  constructor(screen: BufferGeometry, mirror: Mirror, cursor: IUniform<Vector3>, motes: number) {
     this.uniforms = {
       uTime: { value: 0 },
       uIntro: { value: 0 },
@@ -172,6 +173,7 @@ export class Valley {
       uFilmLut: { value: filmTexture() },
       uLampPos: { value: [new Vector3(), new Vector3()] },
       uLampPower: { value: 0 },
+      uHazeSteps: { value: 18 },
     };
     const shared: Record<string, IUniform> = this.uniforms;
 
@@ -222,7 +224,7 @@ export class Valley {
     );
     const dots = this.dots;
     const dust = new Points(
-      dustCloud(),
+      dustCloud(motes),
       material(dustVertex, dustFragment, { ...shared, uWindow: { value: DUST_RADIUS * 2 } }, true),
     );
     for (const object of [sky, this.terrain, this.river, dots, dust]) {
