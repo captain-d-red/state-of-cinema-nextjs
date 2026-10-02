@@ -23,19 +23,16 @@
  * Framed, the stage is locked to 16:9 and centred, with black bars on whichever sides the
  * window has to spare, so a screen recording crops exactly. Its size moves in whole steps of
  * 64 by 36 pixels and its offset in whole steps of 4, which keeps it exactly 16:9 and on the
- * device pixel grid at every display scale from 100 to 200 percent. A window taller than it is
- * wide, a phone held upright, is never framed, since 16:9 would leave it a thin strip.
+ * device pixel grid at every display scale from 100 to 200 percent.
  */
-@media (min-aspect-ratio: 1/1) {
-  .stage[data-frame='16:9'] {
-    --step: round(down, min(100vw / 64, 100lvh / 36), 1px);
-    --w: calc(var(--step) * 64);
-    --h: calc(var(--step) * 36);
-    left: round(down, calc((100vw - var(--w)) / 2), 4px);
-    top: round(down, calc((100lvh - var(--h)) / 2), 4px);
-    width: var(--w);
-    height: var(--h);
-  }
+.stage[data-frame='16:9'] {
+  --step: round(down, min(100vw / 64, 100lvh / 36), 1px);
+  --w: calc(var(--step) * 64);
+  --h: calc(var(--step) * 36);
+  left: round(down, calc((100vw - var(--w)) / 2), 4px);
+  top: round(down, calc((100lvh - var(--h)) / 2), 4px);
+  width: var(--w);
+  height: var(--h);
 }
 
 .canvas {
