@@ -147,6 +147,11 @@ export class Curtain {
     }
   }
 
+  /** How far the curtain has opened, zero closed to one gathered at the posts. */
+  get openness(): number {
+    return this.open;
+  }
+
   /** The print, so the engine can upload it before the curtain is first seen. */
   get texture(): Texture {
     return this.print;

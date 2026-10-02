@@ -68,6 +68,12 @@ export interface EngineFrame {
   readonly started: boolean;
   /** Distance from the eye to the point on the water under the pointer, or null when it is off the water. */
   readonly focus: number | null;
+  /** How far the opening's curtain has opened, zero to one. */
+  readonly curtain: number;
+  /** Clicks that landed this frame, on the water or among the finale's stars. */
+  readonly splashes: number;
+  /** How fast the pointer is drawing through the water, in world units a second. */
+  readonly stir: number;
 }
 
 /** Keeps the drawing buffer near 4K worth of pixels however dense the display is. */
@@ -145,6 +151,8 @@ export class Engine {
   private hover = 0;
   private lastHit: Vector3 | null = null;
   private focus: number | null = null;
+  private splashes = 0;
+  private stir = 0;
   /** The pointer's path over the water this frame, from where it was to where it is. */
   private readonly path: [number, number, number, number] = [0, 0, 0, 0];
 
@@ -315,6 +323,9 @@ export class Engine {
       loaded,
       started: this.startTime !== null,
       focus: this.focus,
+      curtain: this.curtain.openness,
+      splashes: this.splashes,
+      stir: this.stir,
     };
   }
 
@@ -424,14 +435,17 @@ export class Engine {
     const c = this.cursor.value;
     c.set(damp(c.x, input.pointerX, 14, dt), damp(c.y, input.pointerY, 14, dt), damp(c.z, active ? 1 : 0, 6, dt));
     const from = this.lastHit ?? this.hit;
+    this.stir = over ? Math.hypot(this.hit.x - from.x, this.hit.z - from.z) / dt : 0;
     this.path[0] = from.x;
     this.path[1] = from.z;
     this.path[2] = this.hit.x;
     this.path[3] = this.hit.z;
     this.lastHit = over ? (this.lastHit ?? new Vector3()).copy(this.hit) : null;
     this.valley.uniforms.uHover.value.set(this.hit.x, this.hit.z, this.hover);
+    this.splashes = 0;
     if (this.reducedMotion) return;
     for (const tap of input.taps) {
+      this.splashes += 1;
       // In the tunnel there is no water left to stir, so a click sends its ring through the stars.
       if (this.valley.uniforms.uTunnel.value > 0.5) {
         this.valley.pulse.set(tap.x, tap.y, this.valley.uniforms.uTime.value);
