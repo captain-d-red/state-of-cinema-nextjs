@@ -53,3 +53,5 @@ __pycache__/
 
 # scratch capture scripts
 *.tmp.*
+
+graphify-out/
